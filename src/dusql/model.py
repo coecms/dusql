@@ -15,16 +15,22 @@
 # limitations under the License.
 from __future__ import print_function
 
+from .closure_ext import closure_table
 import sqlalchemy as sa
 
 metadata = sa.MetaData()
 paths = sa.Table('paths', metadata,
         sa.Column('id',sa.Integer,primary_key=True),
         sa.Column('name',sa.String),
-        sa.Column('inode',sa.Integer),
+        sa.Column('inode',sa.Integer,index=True),
         sa.Column('size',sa.Integer),
         sa.Column('mtime',sa.Float),
-        sa.Column('parent_inode',sa.Integer),
+        sa.Column('parent_inode',sa.Integer,index=True),
         sa.Column('uid', sa.Integer),
         sa.Column('gid', sa.Integer),
         )
+
+paths_closure = closure_table('paths_closure', metadata,
+        tablename='paths',
+        idcolumn='inode',
+        parentcolumn='parent_inode')
