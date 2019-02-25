@@ -1,6 +1,9 @@
 dusql - SQL Based Disk Usage Analyser
 ================================================================================
 
+.. image:: https://travis-ci.com/coecms/dusql.svg?branch=master
+    :target: https://travis-ci.com/coecms/dusql
+
 Scan all files under ``$DIR`` into the database::
 
     dusql scan $DIR

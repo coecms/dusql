@@ -15,11 +15,26 @@
 # limitations under the License.
 from __future__ import print_function
 
+from . import model
 import sqlalchemy as sa
-from .model import metadata
+import sqlalchemy.sql.functions as safunc
+import pwd
+import grp
+import pandas
 
-def connect():
-    engine = sa.create_engine('sqlite:///dusql.sqlite')
-    metadata.create_all(engine)
+def report(path, connection):
+    total = (sa.sql.select([
+        model.paths.c.uid,
+        model.paths.c.gid,
+        safunc.sum(model.paths.c.size).label('size'),
+        safunc.count().label('inodes')])
+        .group_by(model.paths.c.uid, model.paths.c.gid))
 
-    return engine.connect()
+    df = pandas.read_sql(total, connection)
+
+    df['name'] = df['uid'].apply(lambda u: pwd.getpwuid(u).pw_gecos)
+    df['group'] = df['gid'].apply(lambda u: grp.getgrgid(u).gr_name)
+
+    df['total size (GB)'] = df['size']/1024**3
+
+    print(df[['name','group','total size (GB)','inodes']])

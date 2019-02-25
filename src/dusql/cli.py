@@ -19,10 +19,8 @@ import argparse
 from . import db
 
 class Scan:
-    def init_parser(self, subparser):
-        parser = subparser.add_parser('scan')
+    def init_parser(self, parser):
         parser.add_argument('path')
-        parser.set_defaults(func=self.call)
 
     def call(self, args):
         from .scan import scan
@@ -30,18 +28,52 @@ class Scan:
         scan(args.path, conn)
 
 
+class Report:
+    def init_parser(self, parser):
+        parser.add_argument('path')
+
+    def call(self, args):
+        from .report import report
+        conn = db.connect()
+        report(args.path, conn)
+
+
+class Find:
+    def init_parser(self, parser):
+        parser.add_argument('path')
+        parser.add_argument('--older_than')
+        parser.add_argument('--user')
+        parser.add_argument('--group')
+
+    def call(self, args):
+        from .find import find
+        conn = db.connect()
+        find(args.path, conn, older_than=args.older_than, user=args.user, group=args.group)
+
+
 commands = {
     "scan": Scan(),
+    "report": Report(),
+    "find": Find(),
     }
 
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--debug')
     subp = parser.add_subparsers()
 
     for name, c in commands.items():
-        c.init_parser(subp)
+        p = subp.add_parser(name)
+        p.set_defaults(func = c.call)
+        c.init_parser(p)
 
     args = parser.parse_args()
 
-    args.func(args)
+    try:
+        args.func(args)
+    except Exception as e:
+        if not args.debug:
+            print(e)
+        else:
+            raise

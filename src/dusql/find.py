@@ -15,11 +15,29 @@
 # limitations under the License.
 from __future__ import print_function
 
+from . import model
+
 import sqlalchemy as sa
-from .model import metadata
+import pandas
+import pwd
+import grp
 
-def connect():
-    engine = sa.create_engine('sqlite:///dusql.sqlite')
-    metadata.create_all(engine)
+def find(path, connection, older_than=None, user=None, group=None):
 
-    return engine.connect()
+    q = sa.sql.select([
+        model.paths.c.name
+        ])
+
+    if older_than is not None:
+        delta = pandas.to_timedelta(older_than)
+        ts = (pandas.DateTime.now() - delta).timestamp()
+        q = q.where(model.paths.c.mtime < ts)
+
+    if user is not None:
+        q = q.where(model.paths.c.uid == pwd.getpwnam(user).pw_uid)
+
+    if group is not None:
+        q = q.where(model.paths.c.uid == grp.getgrnam(group).gr_gid)
+
+    for r in connection.execute(q):
+        print(r[0])
