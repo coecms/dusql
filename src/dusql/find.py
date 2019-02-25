@@ -30,7 +30,8 @@ def find(path, connection, older_than=None, user=None, group=None):
 
     if older_than is not None:
         delta = pandas.to_timedelta(older_than)
-        ts = (pandas.DateTime.now() - delta).timestamp()
+        ts = (pandas.Timestamp.now(tz='UTC') - delta)
+        ts = ts.timestamp()
         q = q.where(model.paths.c.mtime < ts)
 
     if user is not None:

@@ -16,6 +16,7 @@
 from __future__ import print_function
 
 import argparse
+import logging
 from . import db
 
 class Scan:
@@ -60,8 +61,10 @@ commands = {
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--debug')
+    parser.add_argument('--debug', action='store_true')
     subp = parser.add_subparsers()
+
+    logging.basicConfig()
 
     for name, c in commands.items():
         p = subp.add_parser(name)
@@ -69,6 +72,9 @@ def main():
         c.init_parser(p)
 
     args = parser.parse_args()
+
+    if args.debug:
+        logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
     try:
         args.func(args)
