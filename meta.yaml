@@ -24,6 +24,7 @@ test:
         - test
     commands:
         - py.test
+        - dusql --help
 
 about:
     home: {{ data['url'] }}
