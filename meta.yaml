@@ -1,0 +1,34 @@
+{% set data = load_setup_py_data() %}
+
+package:
+    name: xncview
+    version: {{ data['version'] }}
+
+source:
+    path: ./
+
+requirements:
+    host:
+        - python >=3.5
+        - pip
+    run:
+        - python
+        - sqlalchemy
+
+build:
+    noarch: python
+    script: "{{ PYTHON }} -m pip install . -vv"
+
+test:
+    files:
+        - test
+    commands:
+        - py.test
+
+about:
+    home: {{ data['url'] }}
+    summary: {{ data['description'] }}
+    license: APACHE
+    license_file: LICENSE
+
+
