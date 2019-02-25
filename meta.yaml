@@ -24,6 +24,8 @@ build:
 test:
     files:
         - test
+    requires:
+        - pytest
     commands:
         - py.test
         - dusql --help

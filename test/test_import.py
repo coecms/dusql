@@ -16,4 +16,4 @@
 from __future__ import print_function
 
 def test_import():
-    import dusql
+    import dusql.model
