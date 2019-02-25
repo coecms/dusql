@@ -16,6 +16,32 @@
 from __future__ import print_function
 
 import argparse
+from . import db
+
+class Scan:
+    def init_parser(self, subparser):
+        parser = subparser.add_parser('scan')
+        parser.add_argument('path')
+        parser.set_defaults(func=self.call)
+
+    def call(self, args):
+        from .scan import scan
+        conn = db.connect()
+        scan(args.path, conn)
+
+
+commands = {
+    "scan": Scan(),
+    }
+
 
 def main():
-    pass
+    parser = argparse.ArgumentParser()
+    subp = parser.add_subparsers()
+
+    for name, c in commands.items():
+        c.init_parser(subp)
+
+    args = parser.parse_args()
+
+    args.func(args)
