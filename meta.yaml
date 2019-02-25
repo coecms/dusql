@@ -23,7 +23,7 @@ requirements:
 build:
     noarch: python
     script: 
-        - "gcc -fPIC -shared src/dusql/closure.c -o src/dusql/closure.o"
+        - "${CC} ${CFLAGS} -fPIC -shared src/dusql/closure.c -o src/dusql/closure.o"
         - "{{ PYTHON }} -m pip install . -vv"
 
 test:
