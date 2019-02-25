@@ -8,6 +8,9 @@ source:
     path: ./
 
 requirements:
+    build:
+        - {{ compiler('c') }}
+        - sqlite
     host:
         - python >=3.5
         - pip
@@ -19,7 +22,9 @@ requirements:
 
 build:
     noarch: python
-    script: "{{ PYTHON }} -m pip install . -vv"
+    script: 
+        - "gcc -fPIC -shared src/dusql/closure.c -o src/dusql/closure.o"
+        - "{{ PYTHON }} -m pip install . -vv"
 
 test:
     files:
