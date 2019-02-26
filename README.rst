@@ -25,14 +25,15 @@ Check usage under ``$DIR`` for potential issues (TODO)::
 
 Find files under ``$DIR``::
 
-    dusql find --older-than P1Y --group w35 $DIR
+    dusql find --older-than 1y --group w35 $DIR
 
 
 TODO:
 
- * Add tests
- * Add check reports
- * Handle multiple paths
- * Automatically scan path if not in directory
- * Update scans, handle deleted files
- * Change database path (presently it creates `dusql.sqlite` in the current directory)
+* Add tests
+* Add check reports
+* Handle multiple paths
+* Automatically scan path if not in database
+* Update scans, handle deleted files
+* Change database path (presently it creates `dusql.sqlite` in the current directory)
+* Progressively add results to database during the scan
