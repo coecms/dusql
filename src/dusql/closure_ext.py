@@ -18,6 +18,8 @@ from __future__ import print_function
 from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql import table, column
 from sqlalchemy.ext import compiler
+from sqlalchemy import event
+
 
 class CreateClosure(DDLElement):
     def __init__(self, name, tablename, idcolumn, parentcolumn):
@@ -32,10 +34,19 @@ def compile(element, compiler, **kw):
     return f'CREATE VIRTUAL TABLE {element.name} USING transitive_closure(tablename={element.tablename}, idcolumn={element.idcolumn}, parentcolumn={element.parentcolumn})'
 
 
+def should_create_closure(ddl, target, bind, **kw):
+    row = bind.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            ddl.name).scalar()
+    return not bool(row)
+
+
 def closure_table(name, metadata, tablename, idcolumn, parentcolumn):
     t = table(name, column('id'), column('root'), column('depth'))
 
-    CreateClosure(name, tablename, idcolumn, parentcolumn).execute_at('after-create', metadata)
+    event.listen(metadata,
+            'after_create',
+            CreateClosure(name, tablename, idcolumn, parentcolumn)
+            .execute_if(callable_=should_create_closure))
 
     return t
 

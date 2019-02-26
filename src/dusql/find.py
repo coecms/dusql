@@ -21,12 +21,18 @@ import sqlalchemy as sa
 import pandas
 import pwd
 import grp
+import os
+
 
 def find(path, connection, older_than=None, user=None, group=None):
-
+    j = sa.sql.join(model.paths, model.paths_closure, model.paths.c.parent_inode == model.paths_closure.c.id)
     q = sa.sql.select([
-        model.paths.c.name
-        ])
+        model.paths.c.name,
+        ]).select_from(j)
+    
+    if path is not None:
+        path_inode = os.stat(path).st_ino
+        q = q.where(model.paths_closure.c.root == path_inode)
 
     if older_than is not None:
         delta = pandas.to_timedelta(older_than)
@@ -41,4 +47,4 @@ def find(path, connection, older_than=None, user=None, group=None):
         q = q.where(model.paths.c.uid == grp.getgrnam(group).gr_gid)
 
     for r in connection.execute(q):
-        print(r[0])
+        print(r.name)
