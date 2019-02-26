@@ -12,7 +12,7 @@ requirements:
         - {{ compiler('c') }}
         - sqlite
     host:
-        - python >=3.5
+        - python >3.5
         - pip
     run:
         - python
@@ -28,13 +28,16 @@ build:
 
 test:
     files:
-        - test
+        - test/**/*.py
+        - src/**/*.py
         - setup.cfg
     requires:
         - pytest
         - pytest-cov
     commands:
-        - py.test --cov-report=xml:{{ environ.get('PWD','') }}/coverage.xml
+        - py.test --cov dusql
+        - coverage combine .coverage
+        - coverage xml -o {{ environ.get('PWD','') }}/coverage.xml
         - dusql --help
 
 about:
