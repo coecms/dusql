@@ -14,10 +14,20 @@ Print a summary of disk usage under ``$DIR``::
 
     dusql report $DIR
 
-Check usage under ``$DIR``::
+Check usage under ``$DIR`` for potential issues (TODO)::
 
     dusql report --check=all $DIR
 
 Find files under ``$DIR``::
 
     dusql find --older-than P1Y --group w35 $DIR
+
+
+TODO:
+
+ * Add tests
+ * Add check reports
+ * Handle multiple paths
+ * Automatically scan path if not in directory
+ * Update scans, handle deleted files
+ * Change database path
