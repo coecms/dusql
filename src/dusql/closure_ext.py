@@ -41,7 +41,7 @@ def should_create_closure(ddl, target, bind, **kw):
 
 
 def closure_table(name, metadata, tablename, idcolumn, parentcolumn):
-    t = table(name, column('id'), column('root'), column('depth'))
+    t = table(name, column('id'), column('root'), column('depth'), column('parentcolumn'), column('idcolumn'))
 
     event.listen(metadata,
             'after_create',
