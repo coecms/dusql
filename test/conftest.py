@@ -13,26 +13,32 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import print_function
 
-from .model import metadata
-import sqlalchemy as sa
-import pkg_resources
-import os.path
+import pytest
 
-default_url = 'sqlite:///dusql.sqlite'
+from dusql.db import connect
+from dusql.scan import scan
 
-def connect(url = default_url, echo=False):
-    engine = sa.create_engine(url, echo=echo)
+@pytest.fixture
+def conn():
+    return connect('sqlite:///:memory:', echo=False)
 
-    def load_closure(dbapi_conn, unused):
-        dbapi_conn.enable_load_extension(True)
-        ext, _ = os.path.splitext(pkg_resources.resource_filename(__name__, 'closure.so'))
-        dbapi_conn.load_extension(ext)
-        dbapi_conn.enable_load_extension(False)
 
-    sa.event.listen(engine, 'connect', load_closure)
+@pytest.fixture(scope="session")
+def sample_data(tmp_path_factory):
+    root = tmp_path_factory.mktemp('sample_data')
+    a = root / 'a'
+    b = a / 'b'
+    c = a / 'c'
+    d = c / 'd'
 
-    metadata.create_all(engine)
+    for p in [a,b,c,d]:
+        p.mkdir()
 
-    return engine.connect()
+    return root
+
+
+@pytest.fixture
+def sample_db(conn, sample_data):
+    scan(sample_data, conn)
+

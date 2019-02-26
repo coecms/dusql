@@ -30,7 +30,7 @@ class CreateClosure(DDLElement):
 
 
 @compiler.compiles(CreateClosure)
-def compile(element, compiler, **kw):
+def compile_create_transitive_closure(element, compiler, **kw):
     return f'CREATE VIRTUAL TABLE {element.name} USING transitive_closure(tablename={element.tablename}, idcolumn={element.idcolumn}, parentcolumn={element.parentcolumn})'
 
 

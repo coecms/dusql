@@ -34,7 +34,7 @@ def report(path, connection):
 
     j = sa.sql.join(model.paths, model.paths_closure, model.paths.c.parent_inode == model.paths_closure.c.id)
     total = total.select_from(j)
-    
+
     if path is not None:
         path_inode = os.stat(path).st_ino
         total = total.where(model.paths_closure.c.root == path_inode)

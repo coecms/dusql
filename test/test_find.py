@@ -13,26 +13,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import print_function
 
-from .model import metadata
+from dusql.find import *
+from dusql import model
+
 import sqlalchemy as sa
-import pkg_resources
-import os.path
 
-default_url = 'sqlite:///dusql.sqlite'
 
-def connect(url = default_url, echo=False):
-    engine = sa.create_engine(url, echo=echo)
+def test_find_empty(conn):
+    # Empty DB has no files
+    q = find(path=None, connection=conn)
+    results = conn.execute(q)
+    assert len(list(results)) == 0
 
-    def load_closure(dbapi_conn, unused):
-        dbapi_conn.enable_load_extension(True)
-        ext, _ = os.path.splitext(pkg_resources.resource_filename(__name__, 'closure.so'))
-        dbapi_conn.load_extension(ext)
-        dbapi_conn.enable_load_extension(False)
 
-    sa.event.listen(engine, 'connect', load_closure)
+def test_find_all(conn, sample_db):
+    # Find all files in the DB
+    q = find(path=None, connection=conn)
+    results = conn.execute(q)
+    assert len(list(results)) == 4
 
-    metadata.create_all(engine)
 
-    return engine.connect()
+def test_find_subtree(conn, sample_data, sample_db):
+    # Find all files under 'a/c'
+    q = find(path=sample_data / 'a' / 'c', connection=conn)
+    results = conn.execute(q)
+    assert len(list(results)) == 2
