@@ -25,7 +25,7 @@ Check usage under ``$DIR`` for potential issues (TODO)::
 
 Find files under ``$DIR``::
 
-    dusql find --older-than 1y --group w35 $DIR
+    dusql find --older_than 1y --group w35 $DIR
 
 
 TODO:
