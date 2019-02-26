@@ -73,8 +73,7 @@ def find(path, connection, older_than=None, user=None, group=None):
         .alias('full_path'))
 
     # Join the full paths back to the path table for further filtering
-    j2 = (sa.sql.join(model.paths, full_path, model.paths.c.inode == full_path.c.inode)
-            .join(model.paths_closure, model.paths.c.inode == model.paths_closure.c.id))
+    j2 = sa.sql.join(model.paths, full_path, model.paths.c.inode == full_path.c.inode)
     q = sa.sql.select([
         full_path.c.path,
         ]).select_from(j2)
@@ -95,5 +94,4 @@ def find(path, connection, older_than=None, user=None, group=None):
     if group is not None:
         q = q.where(model.paths.c.uid == grp.getgrnam(group).gr_gid)
 
-    for r in connection.execute(q):
-        print(r.path)
+    return q

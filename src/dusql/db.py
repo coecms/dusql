@@ -20,8 +20,10 @@ import sqlalchemy as sa
 import pkg_resources
 import os.path
 
-def connect():
-    engine = sa.create_engine('sqlite:///dusql.sqlite')
+default_url = 'sqlite:///dusql.sqlite'
+
+def connect(url = default_url, echo=False):
+    engine = sa.create_engine(url, echo=echo)
 
     def load_closure(dbapi_conn, unused):
         dbapi_conn.enable_load_extension(True)
