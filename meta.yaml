@@ -29,10 +29,12 @@ build:
 test:
     files:
         - test
+        - setup.cfg
     requires:
         - pytest
+        - pytest-cov
     commands:
-        - py.test
+        - py.test --cov-report=xml:{{ environ.get('PWD','') }}/coverage.xml
         - dusql --help
 
 about:
