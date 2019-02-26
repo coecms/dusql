@@ -8,4 +8,5 @@ install:
 script:
         - ~/miniconda/bin/conda build .
 after_success:
+        - cat coverage.xml
         - ~/miniconda/bin/python-codacy-coverage -r coverage.xml
