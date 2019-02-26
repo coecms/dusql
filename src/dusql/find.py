@@ -25,7 +25,7 @@ import os
 
 # SELECT full_path.path
 # FROM (
-#   SELECT 
+#   SELECT
 #     expanded_parent.inode AS inode,
 #     group_concat(expanded_parent.name, '/') AS path
 #   FROM (
@@ -77,7 +77,7 @@ def find(path, connection, older_than=None, user=None, group=None):
     q = sa.sql.select([
         full_path.c.path,
         ]).select_from(j)
-    
+
     if path is not None:
         path_inode = os.stat(path).st_ino
         j = sa.sql.join(j, model.paths_closure, model.paths.c.inode == model.paths_closure.c.id)

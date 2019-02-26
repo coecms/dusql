@@ -17,7 +17,6 @@
 from dusql.find import *
 from dusql import model
 
-import pytest
 import sqlalchemy as sa
 
 
