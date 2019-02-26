@@ -49,7 +49,11 @@ class Find:
     def call(self, args):
         from .find import find
         conn = db.connect()
-        find(args.path, conn, older_than=args.older_than, user=args.user, group=args.group)
+        q = find(args.path, conn, older_than=args.older_than, user=args.user, group=args.group)
+        results = conn.execute(q)
+
+        for r in results:
+            print(r.path)
 
 
 commands = {

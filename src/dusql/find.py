@@ -73,14 +73,15 @@ def find(path, connection, older_than=None, user=None, group=None):
         .alias('full_path'))
 
     # Join the full paths back to the path table for further filtering
-    j2 = sa.sql.join(model.paths, full_path, model.paths.c.inode == full_path.c.inode)
+    j = sa.sql.join(model.paths, full_path, model.paths.c.inode == full_path.c.inode)
     q = sa.sql.select([
         full_path.c.path,
-        ]).select_from(j2)
+        ]).select_from(j)
     
     if path is not None:
         path_inode = os.stat(path).st_ino
-        q = q.where(model.paths_closure.c.root == path_inode)
+        j = sa.sql.join(j, model.paths_closure, model.paths.c.inode == model.paths_closure.c.id)
+        q = q.select_from(j).where(model.paths_closure.c.root == path_inode)
 
     if older_than is not None:
         delta = pandas.to_timedelta(older_than)
