@@ -4,6 +4,8 @@ before_install:
         - bash conda.sh -b -p ~/miniconda
         - ~/miniconda/bin/conda config --system --add channels conda-forge
 install:
-        - ~/miniconda/bin/conda install --yes conda-build conda-verify
+        - ~/miniconda/bin/conda install --yes conda-build conda-verify codacy-coverage
 script:
         - ~/miniconda/bin/conda build .
+after_success:
+        - ~/miniconda/bin/python-codacy-coverage -r coverage.xml
