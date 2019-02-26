@@ -3,8 +3,13 @@ dusql - SQL Based Disk Usage Analyser
 
 .. image:: https://travis-ci.com/coecms/dusql.svg?branch=master
     :target: https://travis-ci.com/coecms/dusql
-.. image:: https://api.codacy.com/project/badge/Grade/427f425167b34f1a88c0d352e2709e52
+    :alt: Build Status
+.. image:: https://img.shields.io/codacy/grade/427f425167b34f1a88c0d352e2709e52.svg
     :target: https://www.codacy.com/app/ScottWales/dusql
+    :alt: Code Style
+.. image:: https://img.shields.io/conda/v/coecms/dusql.svg
+    :target: https://anaconda.org/coecms/dusql
+    :alt: Conda
 
 Scan all files under ``$DIR`` into the database::
 
@@ -30,4 +35,4 @@ TODO:
  * Handle multiple paths
  * Automatically scan path if not in directory
  * Update scans, handle deleted files
- * Change database path
+ * Change database path (presently it creates `dusql.sqlite` in the current directory)
