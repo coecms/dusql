@@ -42,7 +42,7 @@ class Report:
 class Find:
     def init_parser(self, parser):
         parser.add_argument('path')
-        parser.add_argument('--older_than')
+        parser.add_argument('--older_than','--older-than')
         parser.add_argument('--user')
         parser.add_argument('--group')
 
