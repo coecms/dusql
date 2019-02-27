@@ -16,6 +16,7 @@
 from __future__ import print_function
 
 from .model import paths as paths_table
+from .upsert_ext import Insert
 import tqdm
 import os
 
@@ -55,5 +56,6 @@ def scan(path, connection):
 
     with tqdm.tqdm(desc="Directories Scanned") as pbar:
         records = list(_walk_generator(path, progress=pbar))
+        stmt = Insert(paths_table).values(records).on_conflict_do_nothing(index_elements=[paths_table.c.inode, paths_table.c.parent_inode])
 
-        connection.execute(paths_table.insert(), records)
+        connection.execute(stmt)

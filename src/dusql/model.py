@@ -28,6 +28,7 @@ paths = sa.Table('paths', metadata,
         sa.Column('parent_inode',sa.Integer,sa.ForeignKey('paths.inode'),index=True),
         sa.Column('uid', sa.Integer),
         sa.Column('gid', sa.Integer),
+        sa.UniqueConstraint('inode','parent_inode',name='uniq_inode'),
         )
 
 paths_closure = closure_table('paths_closure', metadata,
