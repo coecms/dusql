@@ -57,7 +57,7 @@ def count_files(path):
     Count the number of paths under ``path``, excluding itself
     """
     count = 0
-    for p, ds, fs in os.walk(path):
+    for p, _, fs in os.walk(path):
         for f in fs:
             print(os.path.join(p,f))
         count += 1 + len(fs)

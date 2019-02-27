@@ -17,8 +17,6 @@
 from dusql.find import *
 from dusql import model
 
-import sqlalchemy as sa
-
 from conftest import count_files
 
 
