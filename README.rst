@@ -40,3 +40,4 @@ TODO:
 * Update scans, handle deleted files
 * Change database path (presently it creates `dusql.sqlite` in the current directory)
 * Progressively add results to database during the scan
+* Checks idea: temporary files of failed NCO/CDO commands
