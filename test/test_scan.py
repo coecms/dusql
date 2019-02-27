@@ -14,13 +14,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+from dusql.scan import scan
+
 from dusql import model
 import sqlalchemy as sa
 
+from conftest import count_files
 
-def test_scan_sample(conn, sample_db):
+
+def test_scan_sample(conn, sample_db, sample_data):
     # Check the scanned sample data
     q = sa.select([model.paths.c.inode])
     r = conn.execute(q)
-    assert len(list(r)) == 4
+    assert len(list(r)) == count_files(sample_data)
+
+
+def test_scan_twice(conn, sample_db, sample_data):
+    # Scanning the same directory twice should not change data
+    q = sa.select([model.paths.c.inode])
+    r = conn.execute(q)
+    assert len(list(r)) == count_files(sample_data)
+
+    scan(sample_data, conn)
+
+    q = sa.select([model.paths.c.inode])
+    r = conn.execute(q)
+    assert len(list(r)) == count_files(sample_data)
 

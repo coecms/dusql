@@ -19,6 +19,8 @@ from dusql import model
 
 import sqlalchemy as sa
 
+from conftest import count_files
+
 
 def test_find_empty(conn):
     # Empty DB has no files
@@ -27,15 +29,15 @@ def test_find_empty(conn):
     assert len(list(results)) == 0
 
 
-def test_find_all(conn, sample_db):
+def test_find_all(conn, sample_db, sample_data):
     # Find all files in the DB
     q = find(path=None, connection=conn)
     results = conn.execute(q)
-    assert len(list(results)) == 4
+    assert len(list(results)) == count_files(sample_data)
 
 
 def test_find_subtree(conn, sample_data, sample_db):
     # Find all files under 'a/c'
     q = find(path=sample_data / 'a' / 'c', connection=conn)
     results = conn.execute(q)
-    assert len(list(results)) == 2
+    assert len(list(results)) == count_files(sample_data / 'a' / 'c')

@@ -18,6 +18,8 @@ import pytest
 
 from dusql.db import connect
 from dusql.scan import scan
+import os
+
 
 @pytest.fixture
 def conn():
@@ -42,3 +44,12 @@ def sample_data(tmp_path_factory):
 def sample_db(conn, sample_data):
     scan(sample_data, conn)
 
+
+def count_files(path):
+    """
+    Count the number of paths under a directory
+    """
+    count = 0
+    for p in os.walk(path):
+        count+=1
+    return count-1
