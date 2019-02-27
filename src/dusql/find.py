@@ -16,7 +16,7 @@
 from __future__ import print_function
 
 from . import model
-from .scan import scan
+from .scan import autoscan
 
 import sqlalchemy as sa
 import pandas
@@ -46,13 +46,7 @@ import os
 
 
 def find(path, connection, older_than=None, user=None, group=None):
-    if path is not None:
-        path_inode = os.stat(path).st_ino
-        q = sa.sql.select([model.paths.c.id]).where(model.paths.c.inode == path_inode)
-        r = connection.execute(q).scalar()
-        if r is None:
-            scan(path, connection)
-
+    autoscan(path, connection)
 
     target_path = sa.sql.alias(model.paths, 'target_path')
     parent_path = sa.sql.alias(model.paths, 'parent_path')

@@ -15,10 +15,11 @@
 # limitations under the License.
 from __future__ import print_function
 
-from .model import paths as paths_table
+from . import model
 from .upsert_ext import Insert
 import tqdm
 import os
+import sqlalchemy as sa
 
 def _walk_generator(path, parent_inode=None, progress=None):
     """
@@ -56,6 +57,17 @@ def scan(path, connection):
 
     with tqdm.tqdm(desc="Directories Scanned") as pbar:
         records = list(_walk_generator(path, progress=pbar))
-        stmt = Insert(paths_table).values(records).on_conflict_do_nothing(index_elements=[paths_table.c.inode, paths_table.c.parent_inode])
+        stmt = Insert(model.paths).values(records).on_conflict_do_nothing(index_elements=[model.paths.c.inode, model.paths.c.parent_inode])
 
         connection.execute(stmt)
+
+def autoscan(path, connection):
+    """
+    Runs a scan iff path is not in the database
+    """
+    if path is not None:
+        path_inode = os.stat(path).st_ino
+        q = sa.sql.select([model.paths.c.id]).where(model.paths.c.inode == path_inode)
+        r = connection.execute(q).scalar()
+        if r is None:
+            scan(path, connection)
