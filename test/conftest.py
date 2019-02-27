@@ -37,6 +37,13 @@ def sample_data(tmp_path_factory):
     for p in [a,b,c,d]:
         p.mkdir()
 
+    # Create a hard link
+    e = d / 'e'
+    e.touch()
+
+    f = b / 'f'
+    os.link(e, f)
+
     return root
 
 
@@ -50,6 +57,7 @@ def count_files(path):
     Count the number of paths under a directory
     """
     count = 0
-    for p in os.walk(path):
-        count+=1
+    for p, ds, fs in os.walk(path):
+        print(p)
+        count += 1 + len(fs)
     return count-1
