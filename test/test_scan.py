@@ -27,6 +27,8 @@ def test_scan_sample(conn, sample_db, sample_data):
     # Check the scanned sample data
     q = sa.select([model.paths.c.inode])
     r = conn.execute(q)
+
+    # Note the root path is not included in the scan
     assert len(list(r)) == count_files(sample_data)
 
 

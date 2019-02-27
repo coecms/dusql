@@ -53,6 +53,7 @@ def scan(path, connection):
     Recursively scan all paths under ``path``, adding their metadata to the
     database
     """
+    parent_inode = os.stat(path).st_ino
 
     with tqdm.tqdm(desc="Directories Scanned") as pbar:
         records = list(_walk_generator(path, progress=pbar))

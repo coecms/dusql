@@ -54,10 +54,11 @@ def sample_db(conn, sample_data):
 
 def count_files(path):
     """
-    Count the number of paths under a directory
+    Count the number of paths under ``path``, excluding itself
     """
     count = 0
     for p, ds, fs in os.walk(path):
-        print(p)
+        for f in fs:
+            print(os.path.join(p,f))
         count += 1 + len(fs)
-    return count-1
+    return count - 1

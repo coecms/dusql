@@ -33,7 +33,10 @@ def test_find_all(conn, sample_db, sample_data):
     # Find all files in the DB
     q = find(path=None, connection=conn)
     results = conn.execute(q)
-    assert len(list(results)) == count_files(sample_data)
+
+    paths = [r.path for r in results]
+
+    assert len(paths) == count_files(sample_data) - 1
 
 
 def test_find_subtree(conn, sample_data, sample_db):
@@ -41,3 +44,10 @@ def test_find_subtree(conn, sample_data, sample_db):
     q = find(path=sample_data / 'a' / 'c', connection=conn)
     results = conn.execute(q)
     assert len(list(results)) == count_files(sample_data / 'a' / 'c')
+
+
+def test_autoscan(conn, sample_data):
+    # Should automatically scan the path
+    q = find(path=sample_data, connection=conn)
+    results = conn.execute(q)
+    assert len(list(results)) == count_files(sample_data) - 1

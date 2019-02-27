@@ -16,6 +16,7 @@
 from __future__ import print_function
 
 from . import model
+from .scan import scan
 
 import sqlalchemy as sa
 import pandas
@@ -45,15 +46,24 @@ import os
 
 
 def find(path, connection, older_than=None, user=None, group=None):
+    if path is not None:
+        path_inode = os.stat(path).st_ino
+        q = sa.sql.select([model.paths.c.id]).where(model.paths.c.inode == path_inode)
+        r = connection.execute(q).scalar()
+        if r is None:
+            scan(path, connection)
+
+
     target_path = sa.sql.alias(model.paths, 'target_path')
     parent_path = sa.sql.alias(model.paths, 'parent_path')
     parent_closure = sa.sql.alias(model.paths_closure, 'parent_closure')
 
-    # Create a view 'path.inode','depth','parent_path.name' to construct full paths
-    j = (sa.sql.join(target_path, parent_closure, target_path.c.inode == parent_closure.c.root)
+    # Create a view 'path.id','depth','parent_path.name' to construct full paths
+    j = (sa.sql.join(target_path, parent_closure, target_path.c.parent_inode == parent_closure.c.root)
             .join(parent_path, parent_path.c.inode == parent_closure.c.id))
     q = (sa.sql.select([
-            target_path.c.inode,
+            target_path.c.id,
+            target_path.c.name,
             parent_closure.c.depth,
             parent_path.c.name.label('path_fragment'),
         ])
@@ -63,24 +73,24 @@ def find(path, connection, older_than=None, user=None, group=None):
         .order_by(target_path.c.inode, parent_closure.c.depth.desc())
         .alias('expanded_parent'))
 
-    # Group all the parent paths into a file path for each target
+    # Group all the parent path components into a file path for each target
     full_path = (sa.sql.select([
-          q.c.inode,
-          sa.sql.expression.func.group_concat(q.c.path_fragment,'/').label('path'),
+          q.c.id,
+          (sa.sql.expression.func.group_concat(q.c.path_fragment,'/') + '/' + q.c.name).label('path'),
         ])
         .select_from(q)
-        .group_by(q.c.inode)
+        .group_by(q.c.id)
         .alias('full_path'))
 
     # Join the full paths back to the path table for further filtering
-    j = sa.sql.join(model.paths, full_path, model.paths.c.inode == full_path.c.inode)
+    j = sa.sql.join(model.paths, full_path, model.paths.c.id == full_path.c.id)
     q = sa.sql.select([
         full_path.c.path,
         ]).select_from(j)
 
     if path is not None:
         path_inode = os.stat(path).st_ino
-        j = sa.sql.join(j, model.paths_closure, model.paths.c.inode == model.paths_closure.c.id)
+        j = sa.sql.join(j, model.paths_closure, model.paths.c.parent_inode == model.paths_closure.c.id)
         q = q.select_from(j).where(model.paths_closure.c.root == path_inode)
 
     if older_than is not None:
