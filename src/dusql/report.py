@@ -16,6 +16,7 @@
 from __future__ import print_function
 
 from . import model
+from .scan import autoscan
 import sqlalchemy as sa
 import sqlalchemy.sql.functions as safunc
 import pwd
@@ -25,6 +26,8 @@ import os
 
 
 def report(path, connection):
+    autoscan(path, connection)
+
     total = (sa.sql.select([
         model.paths.c.uid,
         model.paths.c.gid,

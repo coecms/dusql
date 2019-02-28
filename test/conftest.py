@@ -18,10 +18,13 @@ import pytest
 
 from dusql.db import connect
 from dusql.scan import scan
+import os
+
 
 @pytest.fixture
 def conn():
     return connect('sqlite:///:memory:', echo=False)
+    #return connect('sqlite:///test.sqlite', echo=False)
 
 
 @pytest.fixture(scope="session")
@@ -35,6 +38,13 @@ def sample_data(tmp_path_factory):
     for p in [a,b,c,d]:
         p.mkdir()
 
+    # Create a hard link
+    e = d / 'e'
+    e.touch()
+
+    f = b / 'f'
+    os.link(e, f)
+
     return root
 
 
@@ -42,3 +52,14 @@ def sample_data(tmp_path_factory):
 def sample_db(conn, sample_data):
     scan(sample_data, conn)
 
+
+def count_files(path):
+    """
+    Count the number of paths under ``path``, excluding itself
+    """
+    count = 0
+    for p, _, fs in os.walk(path):
+        for f in fs:
+            print(os.path.join(p,f))
+        count += 1 + len(fs)
+    return count - 1

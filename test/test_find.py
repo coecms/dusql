@@ -17,7 +17,7 @@
 from dusql.find import *
 from dusql import model
 
-import sqlalchemy as sa
+from conftest import count_files
 
 
 def test_find_empty(conn):
@@ -27,15 +27,41 @@ def test_find_empty(conn):
     assert len(list(results)) == 0
 
 
-def test_find_all(conn, sample_db):
+def test_find_all(conn, sample_db, sample_data):
     # Find all files in the DB
     q = find(path=None, connection=conn)
     results = conn.execute(q)
-    assert len(list(results)) == 4
+
+    paths = [r.path for r in results]
+
+    assert len(paths) == count_files(sample_data)
 
 
 def test_find_subtree(conn, sample_data, sample_db):
     # Find all files under 'a/c'
     q = find(path=sample_data / 'a' / 'c', connection=conn)
+    results = [r.path for r in conn.execute(q)]
+    assert 'a/c/d/e' in results
+    assert 'a/b/f' not in results
+    assert len(results) == count_files(sample_data / 'a' / 'c')
+
+
+def test_autoscan(conn, sample_data):
+    # Should automatically scan the path
+    q = find(path=sample_data, connection=conn)
     results = conn.execute(q)
-    assert len(list(results)) == 2
+
+    print(q)
+
+    assert conn.execute(sa.sql.select([sa.func.count()]).select_from(model.paths)).scalar() == count_files(sample_data)
+
+    assert len(list(results)) == count_files(sample_data)
+
+
+def test_exclude(conn, sample_data, sample_db):
+    # Find all files except those under 'a/c'
+    q = find(sample_data, conn, exclude='c')
+    results = [r.path for r in conn.execute(q)]
+    assert 'a/c' not in results
+    assert 'a/c/d/e' not in results
+    assert len(results) == count_files(sample_data) - count_files(sample_data / 'a' / 'c') - 1

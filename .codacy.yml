@@ -1,0 +1,13 @@
+---
+engines:
+    coverage:
+        exclude_paths:
+            - src/dusql/closure.c
+            - src/dusql/_version.py
+            - test/**
+            - setup.py
+            - versioneer.py
+exclude_paths:
+    - src/dusql/closure.c
+    - src/dusql/_version.py
+    - versioneer.py

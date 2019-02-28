@@ -17,9 +17,34 @@ from __future__ import print_function
 
 import argparse
 import logging
+import pandas
+import re
 from . import db
 
+
+def parse_size(size):
+    """
+    Parses a find-style size into bytes
+    """
+    multiplier = {
+        'b': 512,
+        'c': 1,
+        'w': 2,
+        'k': 1024,
+        'M': 1048576,
+        'G': 1073741824,
+        }
+    m = re.fullmatch(r'(?P<size>[+-]?\d+(\.\d*)?)(?P<unit>[cwbkMG])', size)
+
+    if m is None:
+        raise Exception(f"Could not interpret '{size}' as a size")
+
+    return float(m.group('size')) * multiplier[m.group('unit')]
+
+
 class Scan:
+    """
+    """
     def init_parser(self, parser):
         parser.add_argument('path')
 
@@ -30,6 +55,8 @@ class Scan:
 
 
 class Report:
+    """
+    """
     def init_parser(self, parser):
         parser.add_argument('path')
 
@@ -40,16 +67,21 @@ class Report:
 
 
 class Find:
+    """
+    Find the full path of files in the database
+    """
     def init_parser(self, parser):
-        parser.add_argument('path')
-        parser.add_argument('--older_than','--older-than')
-        parser.add_argument('--user')
-        parser.add_argument('--group')
+        parser.add_argument('path',metavar='PATH',help="Path to search under")
+        parser.add_argument('--older_than','--older-than',metavar='AGE',type=pandas.to_timedelta,help="Minimum age (e.g. '1y', '30d')")
+        parser.add_argument('--user',help="Match only this user id",action='append')
+        parser.add_argument('--group',help="Match only this group id",action='append')
+        parser.add_argument('--exclude',help="Exclude files and directories matching this name",action='append')
+        parser.add_argument('--size',type=parse_size,help="Match files greater than this find-style size (e.g. '20G') (prefix with '-' for less than)")
 
     def call(self, args):
         from .find import find
         conn = db.connect()
-        q = find(args.path, conn, older_than=args.older_than, user=args.user, group=args.group)
+        q = find(args.path, conn, older_than=args.older_than, user=args.user, group=args.group, exclude=args.exclude, size=args.size)
         results = conn.execute(q)
 
         for r in results:
@@ -71,7 +103,7 @@ def main():
     logging.basicConfig()
 
     for name, c in commands.items():
-        p = subp.add_parser(name)
+        p = subp.add_parser(name, description=c.__doc__)
         p.set_defaults(func = c.call)
         c.init_parser(p)
 
