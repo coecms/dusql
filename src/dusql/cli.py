@@ -76,7 +76,7 @@ class Find:
         parser.add_argument('--user',help="Match only this user id",action='append')
         parser.add_argument('--group',help="Match only this group id",action='append')
         parser.add_argument('--exclude',help="Exclude files and directories matching this name",action='append')
-        parser.add_argument('--size',type=parse_size,help="Find-style size to match (e.g. '20G')")
+        parser.add_argument('--size',type=parse_size,help="Match files greater than this find-style size (e.g. '20G') (prefix with '-' for less than)")
 
     def call(self, args):
         from .find import find
