@@ -52,9 +52,9 @@ class Find:
     def init_parser(self, parser):
         parser.add_argument('path',metavar='PATH',help="Path to search under")
         parser.add_argument('--older_than','--older-than',metavar='AGE',type=pandas.to_timedelta,help="Minimum age (e.g. '1y', '30d')")
-        parser.add_argument('--user',help="Match only this user id")
-        parser.add_argument('--group',help="Match only this group id")
-        parser.add_argument('--exclude',help="Exclude files and directories matching this name")
+        parser.add_argument('--user',help="Match only this user id",action='append')
+        parser.add_argument('--group',help="Match only this group id",action='append')
+        parser.add_argument('--exclude',help="Exclude files and directories matching this name",action='append')
 
     def call(self, args):
         from .find import find

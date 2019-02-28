@@ -52,16 +52,16 @@ def find(path, connection, older_than=None, user=None, group=None, exclude=None)
         q = q.where(model.paths.c.mtime < ts)
 
     if user is not None:
-        q = q.where(model.paths.c.uid == pwd.getpwnam(user).pw_uid)
+        q = q.where(model.paths.c.uid.in_([pwd.getpwnam(u).pw_uid for u in user]))
 
     if group is not None:
-        q = q.where(model.paths.c.uid == grp.getgrnam(group).gr_gid)
+        q = q.where(model.paths.c.uid.in_([grp.getgrnam(g).gr_gid for g in group]))
 
     if exclude is not None:
         excl_q = (sa.select([model.paths_parents.c.path_id])
                 .select_from(model.paths_parents
                     .join(model.paths, model.paths.c.id == model.paths_parents.c.parent_id))
-                .where(model.paths.c.name == exclude))
+                .where(model.paths.c.name.in_(exclude)))
         q = q.where(~model.paths.c.id.in_(excl_q))
 
     return q
