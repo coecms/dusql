@@ -35,7 +35,7 @@ def parse_size(size):
         'G': 1073741824,
         }
     m = re.fullmatch(r'(?P<size>[+-]?\d+(\.\d*)?)(?P<unit>[cwbkMG])', size)
-    
+
     if m is None:
         raise Exception(f"Could not interpret '{size}' as a size")
 
