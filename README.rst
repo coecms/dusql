@@ -33,10 +33,10 @@ Find files under ``$DIR``::
 
 TODO:
 
-* Add tests
 * Add check reports
-* Handle multiple paths
-* Automatically scan path if not in database
-* Update scans, handle deleted files
+* Handle multiple paths in cli arguments
+* Update scans, handle deleted files and changed sizes
 * Change database path (presently it creates `dusql.sqlite` in the current directory)
 * Progressively add results to database during the scan
+* Add more find arguments, e.g. size, mode
+

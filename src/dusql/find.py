@@ -47,8 +47,7 @@ def find(path, connection, older_than=None, user=None, group=None, exclude=None)
         q = q.select_from(j).where(parent_path.c.parent_inode == path_inode)
 
     if older_than is not None:
-        delta = pandas.to_timedelta(older_than)
-        ts = (pandas.Timestamp.now(tz='UTC') - delta)
+        ts = (pandas.Timestamp.now(tz='UTC') - older_than)
         ts = ts.timestamp()
         q = q.where(model.paths.c.mtime < ts)
 

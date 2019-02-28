@@ -17,9 +17,13 @@ from __future__ import print_function
 
 import argparse
 import logging
+import pandas
 from . import db
 
+
 class Scan:
+    """
+    """
     def init_parser(self, parser):
         parser.add_argument('path')
 
@@ -30,6 +34,8 @@ class Scan:
 
 
 class Report:
+    """
+    """
     def init_parser(self, parser):
         parser.add_argument('path')
 
@@ -40,12 +46,15 @@ class Report:
 
 
 class Find:
+    """
+    Find the full path of files in the database
+    """
     def init_parser(self, parser):
-        parser.add_argument('path')
-        parser.add_argument('--older_than','--older-than')
-        parser.add_argument('--user')
-        parser.add_argument('--group')
-        parser.add_argument('--exclude')
+        parser.add_argument('path',metavar='PATH',help="Path to search under")
+        parser.add_argument('--older_than','--older-than',metavar='AGE',type=pandas.to_timedelta,help="Minimum age (e.g. '1y', '30d')")
+        parser.add_argument('--user',help="Match only this user id")
+        parser.add_argument('--group',help="Match only this group id")
+        parser.add_argument('--exclude',help="Exclude files and directories matching this name")
 
     def call(self, args):
         from .find import find
@@ -72,7 +81,7 @@ def main():
     logging.basicConfig()
 
     for name, c in commands.items():
-        p = subp.add_parser(name)
+        p = subp.add_parser(name, description=c.__doc__)
         p.set_defaults(func = c.call)
         c.init_parser(p)
 
