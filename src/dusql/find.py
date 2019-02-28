@@ -25,7 +25,7 @@ import grp
 import os
 
 
-def find(path, connection, older_than=None, user=None, group=None, exclude_dir=None):
+def find(path, connection, older_than=None, user=None, group=None, exclude=None):
     autoscan(path, connection)
 
     j = (model.paths_fullpath
@@ -57,5 +57,12 @@ def find(path, connection, older_than=None, user=None, group=None, exclude_dir=N
 
     if group is not None:
         q = q.where(model.paths.c.uid == grp.getgrnam(group).gr_gid)
+
+    if exclude is not None:
+        excl_q = (sa.select([model.paths_parents.c.path_id])
+                .select_from(model.paths_parents
+                    .join(model.paths, model.paths.c.id == model.paths_parents.c.parent_id))
+                .where(model.paths.c.name == exclude))
+        q = q.where(~model.paths.c.id.in_(excl_q))
 
     return q

@@ -45,11 +45,12 @@ class Find:
         parser.add_argument('--older_than','--older-than')
         parser.add_argument('--user')
         parser.add_argument('--group')
+        parser.add_argument('--exclude')
 
     def call(self, args):
         from .find import find
         conn = db.connect()
-        q = find(args.path, conn, older_than=args.older_than, user=args.user, group=args.group)
+        q = find(args.path, conn, older_than=args.older_than, user=args.user, group=args.group, exclude=args.exclude)
         results = conn.execute(q)
 
         for r in results:

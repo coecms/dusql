@@ -60,8 +60,8 @@ def test_autoscan(conn, sample_data):
 
 def test_exclude(conn, sample_data, sample_db):
     # Find all files except those under 'a/c'
-    q = find(sample_data, conn, exclude_dir='c')
+    q = find(sample_data, conn, exclude='c')
     results = [r.path for r in conn.execute(q)]
     assert 'a/c' not in results
     assert 'a/c/d/e' not in results
-    assert len(results) == count_files(sample_data) - count_files(sample_data / 'a' / 'c')
+    assert len(results) == count_files(sample_data) - count_files(sample_data / 'a' / 'c') - 1
