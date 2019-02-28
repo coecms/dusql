@@ -25,7 +25,7 @@ import grp
 import os
 
 
-def find(path, connection, older_than=None, user=None, group=None, exclude=None):
+def find(path, connection, older_than=None, user=None, group=None, exclude=None, size=None):
     autoscan(path, connection)
 
     j = (model.paths_fullpath
@@ -63,5 +63,11 @@ def find(path, connection, older_than=None, user=None, group=None, exclude=None)
                     .join(model.paths, model.paths.c.id == model.paths_parents.c.parent_id))
                 .where(model.paths.c.name.in_(exclude)))
         q = q.where(~model.paths.c.id.in_(excl_q))
+
+    if size is not None:
+        if size > 0:
+            q = q.where(model.paths.c.size >= size)
+        else:
+            q = q.where(model.paths.c.size < -size)
 
     return q

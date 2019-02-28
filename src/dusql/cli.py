@@ -18,7 +18,28 @@ from __future__ import print_function
 import argparse
 import logging
 import pandas
+import re
 from . import db
+
+
+def parse_size(size):
+    """
+    Parses a find-style size into bytes
+    """
+    multiplier = {
+        'b': 512,
+        'c': 1,
+        'w': 2,
+        'k': 1024,
+        'M': 1048576,
+        'G': 1073741824,
+        }
+    m = re.fullmatch(r'(?P<size>[+-]?\d+(\.\d*)?)(?P<unit>[cwbkMG])', size)
+    
+    if m is None:
+        raise Exception(f"Could not interpret '{size}' as a size")
+
+    return float(m.group('size')) * multiplier[m.group('unit')]
 
 
 class Scan:
@@ -55,11 +76,12 @@ class Find:
         parser.add_argument('--user',help="Match only this user id",action='append')
         parser.add_argument('--group',help="Match only this group id",action='append')
         parser.add_argument('--exclude',help="Exclude files and directories matching this name",action='append')
+        parser.add_argument('--size',type=parse_size,help="Find-style size to match (e.g. '20G')")
 
     def call(self, args):
         from .find import find
         conn = db.connect()
-        q = find(args.path, conn, older_than=args.older_than, user=args.user, group=args.group, exclude=args.exclude)
+        q = find(args.path, conn, older_than=args.older_than, user=args.user, group=args.group, exclude=args.exclude, size=args.size)
         results = conn.execute(q)
 
         for r in results:
