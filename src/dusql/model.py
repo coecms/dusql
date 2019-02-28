@@ -13,12 +13,44 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""
+SQL Model
+=========
+
+The model is based off of one main table, ``paths``, and a number of views for
+ease of use.
+
+The ``paths`` table represents inodes on the file system, and consists of a
+number columns representing os.stat() values as well as the column
+``parent_inode`` which is the inode of the directory containing this file.
+
+Due to hard links the value of ``inode`` is not globally unique.
+
+The ``paths_closure`` virtual table uses the sqlite closure extension to
+calculate the structure of the filesystem tree, based on the ``inode`` and
+``parent_inode`` columns of the ``paths`` table.
+
+The ``paths_parents`` and ``paths_descendants`` views convert the ``inode``
+dependencies convert the inode-based information in ``paths_closure`` into row
+ids of the ``paths`` table.
+
+The ``paths_fullpath`` view contains the full path to a file
+
+To use the views within sqlite the closure extension must be loaded, e.g. with::
+
+    .load src/dusql/closure
+"""
+
 from __future__ import print_function
 
 from .closure_ext import closure_table
+from .view_ext import view
 import sqlalchemy as sa
 
 metadata = sa.MetaData()
+
+#: Inode information from scanning the filesystem
 paths = sa.Table('paths', metadata,
         sa.Column('id',sa.Integer,primary_key=True),
         sa.Column('name',sa.String),
@@ -31,7 +63,73 @@ paths = sa.Table('paths', metadata,
         sa.UniqueConstraint('inode','parent_inode',name='uniq_inode'),
         )
 
+_other_paths = sa.sql.alias(paths)
+
+paths_parent_id = view('paths_parent_id', metadata,
+        sa.sql.select([paths.c.id.label('id'), _other_paths.c.id.label('parent_id')])
+        .select_from(
+            paths
+            .join(_other_paths, _other_paths.c.inode == paths.c.parent_inode)
+            ))
+
+
+#: Virtual table describing the tree structure
 paths_closure = closure_table('paths_closure', metadata,
-        tablename='paths',
-        idcolumn='inode',
-        parentcolumn='parent_inode')
+        tablename='paths_parent_id',
+        idcolumn='id',
+        parentcolumn='parent_id')
+
+
+#: Descendents of a given inode
+paths_descendants = view('paths_descendants', metadata,
+        sa.sql.select([
+            paths.c.id.label('path_id'),
+            paths_closure.c.depth.label('depth'),
+            paths_closure.c.id.label('desc_id'),
+            ])
+        .select_from(
+            paths
+            .join(paths_closure, paths.c.id == paths_closure.c.root)
+        )
+        )
+
+
+#: Parents of a given inode
+paths_parents = view('paths_parents', metadata,
+        sa.sql.select([
+            paths.c.id.label('path_id'),
+            paths_closure.c.depth.label('depth'),
+            paths_closure.c.id.label('parent_id'),
+            ])
+        .select_from(
+            paths
+            .join(paths_closure, paths.c.id == paths_closure.c.root)
+        )
+        .where(paths_closure.c.idcolumn == 'parent_id')
+        .where(paths_closure.c.parentcolumn == 'id')
+        )
+
+
+# Subquery to order results correctly for GROUP_CONCAT
+_q = (sa.sql.select([
+        paths_parents.c.path_id,
+        paths_parents.c.depth,
+        paths.c.name,
+        ])
+        .select_from(
+            paths
+            .join(paths_parents, paths.c.id == paths_parents.c.parent_id)
+        )
+        .order_by(paths.c.id, paths_parents.c.depth)
+        )
+
+
+#: Full paths to an inode
+paths_fullpath = view('paths_fullpath', metadata,
+        sa.sql.select([
+            _q.c.path_id.label('path_id'),
+            sa.sql.expression.func.group_concat(_q.c.name,'/').label('path')
+            ])
+        .select_from(_q)
+        .group_by(_q.c.path_id)
+        )
