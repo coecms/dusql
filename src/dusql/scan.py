@@ -20,6 +20,7 @@ from .upsert_ext import Insert
 import tqdm
 import os
 import sqlalchemy as sa
+import itertools
 from datetime import datetime
 
 
@@ -43,7 +44,9 @@ def _walk_generator(path, parent_inode=None, progress=None, scan_time=None):
     """
     # Find the parent inode if not supplied
     if parent_inode is None:
-        parent_inode = os.stat(path).st_ino
+        parent_record = _single_file(path, scan_time)
+        yield parent_record
+        parent_inode = parent_record['parent_inode']
 
     for inode in os.scandir(path):
         # Loop over each file in the directory, adding it to the results list
@@ -63,6 +66,13 @@ def _walk_generator(path, parent_inode=None, progress=None, scan_time=None):
         progress.update(1)
 
 
+def chunk(iterable, size):
+    # From https://stackoverflow.com/a/24527424
+    iterator = iter(iterable)
+    for first in iterator:
+        yield itertools.chain([first], itertools.islice(iterator, size-1))
+
+
 def scan(path, connection):
     """
     Recursively scan all paths under ``path``, adding their metadata to the
@@ -71,12 +81,10 @@ def scan(path, connection):
     scan_time = datetime.utcnow().timestamp()
 
     with tqdm.tqdm(desc="Directories Scanned") as pbar:
-        records = list(_walk_generator(path, progress=pbar, scan_time=scan_time))
-        records.append(_single_file(path, scan_time))
+        for records in chunk(_walk_generator(path, progress=pbar, scan_time=scan_time), 10000):
+            stmt = Insert(model.paths).values(list(records)).on_conflict_do_nothing(index_elements=[model.paths.c.parent_inode, model.paths.c.inode, model.paths.c.name])
 
-        stmt = Insert(model.paths).values(records).on_conflict_do_nothing(index_elements=[model.paths.c.parent_inode, model.paths.c.inode, model.paths.c.name])
-
-        connection.execute(stmt)
+            connection.execute(stmt)
 
 def autoscan(path, connection):
     """
