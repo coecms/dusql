@@ -20,8 +20,24 @@ from .upsert_ext import Insert
 import tqdm
 import os
 import sqlalchemy as sa
+from datetime import datetime
 
-def _walk_generator(path, parent_inode=None, progress=None):
+
+def _single_file(path, scan_time):
+    name = os.path.basename(path)
+    parent_inode = -1
+    stat = os.stat(path)
+    return _single_file_record(name, parent_inode, stat, scan_time)
+
+
+def _single_file_record(name, parent_inode, stat, scan_time):
+    return {'name': name, 'parent_inode': parent_inode, 'inode': stat.st_ino,
+            'size': stat.st_size, 'mtime': stat.st_mtime, 'uid': stat.st_uid,
+            'gid': stat.st_gid, 'mode': stat.st_mode, 'device': stat.st_dev,
+            'ctime': stat.st_ctime, 'last_seen': scan_time}
+
+
+def _walk_generator(path, parent_inode=None, progress=None, scan_time=None):
     """
     Descend a directory, constructing a list of metadata for each file found
     """
@@ -33,9 +49,7 @@ def _walk_generator(path, parent_inode=None, progress=None):
         # Loop over each file in the directory, adding it to the results list
         stat = inode.stat(follow_symlinks=False)
 
-        yield {'name': inode.name, 'inode': stat.st_ino, 'size': stat.st_size,
-                'mtime': stat.st_mtime, 'parent_inode': parent_inode, 'uid':
-                stat.st_uid, 'gid': stat.st_gid}
+        yield _single_file_record(inode.name, parent_inode, stat, scan_time)
 
         # Recurse into directories
         if inode.is_dir(follow_symlinks=False):
@@ -54,10 +68,13 @@ def scan(path, connection):
     Recursively scan all paths under ``path``, adding their metadata to the
     database
     """
+    scan_time = datetime.utcnow().timestamp()
 
     with tqdm.tqdm(desc="Directories Scanned") as pbar:
-        records = list(_walk_generator(path, progress=pbar))
-        stmt = Insert(model.paths).values(records).on_conflict_do_nothing(index_elements=[model.paths.c.inode, model.paths.c.parent_inode])
+        records = list(_walk_generator(path, progress=pbar, scan_time=scan_time))
+        records.append(_single_file(path, scan_time))
+
+        stmt = Insert(model.paths).values(records).on_conflict_do_nothing(index_elements=[model.paths.c.parent_inode, model.paths.c.inode, model.paths.c.name])
 
         connection.execute(stmt)
 

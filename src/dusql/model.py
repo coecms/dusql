@@ -57,10 +57,14 @@ paths = sa.Table('paths', metadata,
         sa.Column('inode',sa.Integer,index=True),
         sa.Column('size',sa.Integer),
         sa.Column('mtime',sa.Float),
+        sa.Column('ctime',sa.Float),
         sa.Column('parent_inode',sa.Integer,sa.ForeignKey('paths.inode'),index=True),
         sa.Column('uid', sa.Integer),
         sa.Column('gid', sa.Integer),
-        sa.UniqueConstraint('inode','parent_inode',name='uniq_inode'),
+        sa.Column('mode', sa.Integer),
+        sa.Column('device', sa.Integer),
+        sa.Column('last_seen',sa.Float),
+        sa.UniqueConstraint('inode','parent_inode','name',name='uniq_inode_edge'),
         )
 
 _other_paths = sa.sql.alias(paths)
@@ -120,7 +124,7 @@ _q = (sa.sql.select([
             paths
             .join(paths_parents, paths.c.id == paths_parents.c.parent_id)
         )
-        .order_by(paths.c.id, paths_parents.c.depth)
+        .order_by(paths_parents.c.path_id, paths_parents.c.depth.desc())
         )
 
 

@@ -44,7 +44,7 @@ def find(path, connection, older_than=None, user=None, group=None, exclude=None,
         j = (j.join(model.paths_parents, model.paths.c.id == model.paths_parents.c.path_id)
                 .join(parent_path, parent_path.c.id == model.paths_parents.c.parent_id))
 
-        q = q.select_from(j).where(parent_path.c.parent_inode == path_inode)
+        q = q.select_from(j).where(parent_path.c.inode == path_inode)
 
     if older_than is not None:
         ts = (pandas.Timestamp.now(tz='UTC') - older_than)
