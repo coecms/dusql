@@ -19,6 +19,10 @@ import argparse
 import logging
 import pandas
 import re
+import json
+import tempfile
+import sys
+import subprocess
 from . import db
 
 
@@ -77,15 +81,32 @@ class Find:
         parser.add_argument('--group',help="Match only this group id",action='append')
         parser.add_argument('--exclude',help="Exclude files and directories matching this name",action='append')
         parser.add_argument('--size',type=parse_size,help="Match files greater than this find-style size (e.g. '20G') (prefix with '-' for less than)")
+        parser.add_argument('--format',choices=['list','ncdu'],help="Output listing format")
 
     def call(self, args):
-        from .find import find
+        from .find import find, to_ncdu
         conn = db.connect()
         q = find(args.path, conn, older_than=args.older_than, user=args.user, group=args.group, exclude=args.exclude, size=args.size)
-        results = conn.execute(q)
 
-        for r in results:
-            print(r.path)
+        if args.format is None:
+            # Set default output format
+            if sys.stdout.isatty():
+                args.format = 'ncdu'
+            else:
+                args.format = 'list'
+
+        if args.format == 'list':
+            for r in conn.execute(q):
+                print(r.path)
+
+        if args.format == 'ncdu':
+            with tempfile.NamedTemporaryFile('w+') as jsonf:
+                # Export to JSON
+                json.dump(to_ncdu(q, conn), jsonf)
+                jsonf.flush()
+
+                c = ['ncdu', '-e', '-f', jsonf.name]
+                subprocess.run(c)
 
 
 commands = {

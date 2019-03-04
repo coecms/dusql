@@ -48,7 +48,7 @@ def to_ncdu(findq, connection):
             model.paths.c.mode,
             model.paths.c.uid,
             model.paths.c.gid,
-            model.paths.c.mtime,
+            sa.cast(model.paths.c.mtime, sa.Integer).label('mtime'),
             ])
             .select_from(model.paths
                 .join(model.paths_parents,
@@ -57,9 +57,10 @@ def to_ncdu(findq, connection):
             .distinct()
         )
 
-    tree = {None: [{"name": "/"}]}
+    tree = {None: [{"name": "."}]}
     for r in connection.execute(q):
         d = dict(r)
+        d['dsize'] = d['asize']
         i = d.pop('id')
         if stat.S_ISDIR(d['mode']):
             tree[i] = [d]
