@@ -69,3 +69,13 @@ def test_exclude(conn, sample_data, sample_db):
     assert 'a/c' not in results
     assert 'a/c/d/e' not in results
     assert len(results) == count_files(sample_data) - count_files(sample_data / 'a' / 'c')
+
+
+def test_ncdu(conn, sample_data, sample_db):
+    q = find(sample_data/'a', conn)
+    ncdu = to_ncdu(q, conn)
+    print(ncdu)
+
+    assert ncdu[3][0]['name'] == '/'
+    assert ncdu[3][1][0]['name'] == sample_data.name
+    assert ncdu[3][1][1][0]['name'] == 'a'

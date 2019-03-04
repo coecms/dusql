@@ -64,4 +64,5 @@ def count_files(path):
         for f in fs:
             print(os.path.join(p,f))
         count += 1 + len(fs)
+        print(p)
     return count

@@ -25,7 +25,7 @@ from datetime import datetime
 
 def _single_file(path, scan_time):
     name = os.path.basename(path)
-    parent_inode = -1
+    parent_inode = 0
     stat = os.stat(path)
     return _single_file_record(name, parent_inode, stat, scan_time)
 
