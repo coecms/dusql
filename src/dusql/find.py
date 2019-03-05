@@ -119,7 +119,7 @@ def find(path, connection, older_than=None, user=None, group=None, exclude=None,
         q = q.where(model.paths.c.uid.in_([pwd.getpwnam(u).pw_uid for u in user]))
 
     if group is not None:
-        q = q.where(model.paths.c.uid.in_([grp.getgrnam(g).gr_gid for g in group]))
+        q = q.where(model.paths.c.gid.in_([grp.getgrnam(g).gr_gid for g in group]))
 
     if exclude is not None:
         excl_q = (sa.select([model.paths_parents.c.path_id])
