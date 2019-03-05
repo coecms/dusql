@@ -46,7 +46,7 @@ def _walk_generator(path, parent_inode=None, progress=None, scan_time=None):
     if parent_inode is None:
         parent_record = _single_file(path, scan_time)
         yield parent_record
-        parent_inode = parent_record['parent_inode']
+        parent_inode = parent_record['inode']
 
     for inode in os.scandir(path):
         # Loop over each file in the directory, adding it to the results list

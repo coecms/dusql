@@ -76,6 +76,6 @@ def test_ncdu(conn, sample_data, sample_db):
     ncdu = to_ncdu(q, conn)
     print(ncdu)
 
-    assert ncdu[3][0]['name'] == '/'
+    assert ncdu[3][0]['name'] == '.'
     assert ncdu[3][1][0]['name'] == sample_data.name
     assert ncdu[3][1][1][0]['name'] == 'a'
