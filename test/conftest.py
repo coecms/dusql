@@ -43,7 +43,9 @@ def sample_data(tmp_path_factory):
     e.touch()
 
     f = b / 'f'
+    g = b / 'g'
     os.link(e, f)
+    os.link(e, g)
 
     return root
 
@@ -55,11 +57,12 @@ def sample_db(conn, sample_data):
 
 def count_files(path):
     """
-    Count the number of paths under ``path``, excluding itself
+    Count the number of paths under ``path``
     """
     count = 0
     for p, _, fs in os.walk(path):
         for f in fs:
             print(os.path.join(p,f))
         count += 1 + len(fs)
-    return count - 1
+        print(p)
+    return count

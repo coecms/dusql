@@ -18,6 +18,10 @@ from dusql.find import *
 from dusql import model
 
 from conftest import count_files
+import os
+
+def to_relpath(path, base):
+    return os.path.relpath(base / path, base / '..')
 
 
 def test_find_empty(conn):
@@ -41,8 +45,8 @@ def test_find_subtree(conn, sample_data, sample_db):
     # Find all files under 'a/c'
     q = find(path=sample_data / 'a' / 'c', connection=conn)
     results = [r.path for r in conn.execute(q)]
-    assert 'a/c/d/e' in results
-    assert 'a/b/f' not in results
+    assert to_relpath('a/c/d/e', sample_data) in results
+    assert to_relpath('a/b/f', sample_data) not in results
     assert len(results) == count_files(sample_data / 'a' / 'c')
 
 
@@ -64,4 +68,14 @@ def test_exclude(conn, sample_data, sample_db):
     results = [r.path for r in conn.execute(q)]
     assert 'a/c' not in results
     assert 'a/c/d/e' not in results
-    assert len(results) == count_files(sample_data) - count_files(sample_data / 'a' / 'c') - 1
+    assert len(results) == count_files(sample_data) - count_files(sample_data / 'a' / 'c')
+
+
+def test_ncdu(conn, sample_data, sample_db):
+    q = find(sample_data/'a', conn)
+    ncdu = to_ncdu(q, conn)
+    print(ncdu)
+
+    assert ncdu[3][0]['name'] == '.'
+    assert ncdu[3][1][0]['name'] == sample_data.name
+    assert ncdu[3][1][1][0]['name'] == 'a'

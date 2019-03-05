@@ -20,22 +20,39 @@ from .upsert_ext import Insert
 import tqdm
 import os
 import sqlalchemy as sa
+import itertools
+from datetime import datetime
 
-def _walk_generator(path, parent_inode=None, progress=None):
+
+def _single_file(path, scan_time):
+    name = os.path.basename(path)
+    parent_inode = 0
+    stat = os.stat(path)
+    return _single_file_record(name, parent_inode, stat, scan_time)
+
+
+def _single_file_record(name, parent_inode, stat, scan_time):
+    return {'name': name, 'parent_inode': parent_inode, 'inode': stat.st_ino,
+            'size': stat.st_size, 'mtime': stat.st_mtime, 'uid': stat.st_uid,
+            'gid': stat.st_gid, 'mode': stat.st_mode, 'device': stat.st_dev,
+            'ctime': stat.st_ctime, 'last_seen': scan_time}
+
+
+def _walk_generator(path, parent_inode=None, progress=None, scan_time=None):
     """
     Descend a directory, constructing a list of metadata for each file found
     """
     # Find the parent inode if not supplied
     if parent_inode is None:
-        parent_inode = os.stat(path).st_ino
+        parent_record = _single_file(path, scan_time)
+        yield parent_record
+        parent_inode = parent_record['inode']
 
     for inode in os.scandir(path):
         # Loop over each file in the directory, adding it to the results list
         stat = inode.stat(follow_symlinks=False)
 
-        yield {'name': inode.name, 'inode': stat.st_ino, 'size': stat.st_size,
-                'mtime': stat.st_mtime, 'parent_inode': parent_inode, 'uid':
-                stat.st_uid, 'gid': stat.st_gid}
+        yield _single_file_record(inode.name, parent_inode, stat, scan_time)
 
         # Recurse into directories
         if inode.is_dir(follow_symlinks=False):
@@ -49,17 +66,25 @@ def _walk_generator(path, parent_inode=None, progress=None):
         progress.update(1)
 
 
+def chunk(iterable, size):
+    # From https://stackoverflow.com/a/24527424
+    iterator = iter(iterable)
+    for first in iterator:
+        yield itertools.chain([first], itertools.islice(iterator, size-1))
+
+
 def scan(path, connection):
     """
     Recursively scan all paths under ``path``, adding their metadata to the
     database
     """
+    scan_time = datetime.utcnow().timestamp()
 
     with tqdm.tqdm(desc="Directories Scanned") as pbar:
-        records = list(_walk_generator(path, progress=pbar))
-        stmt = Insert(model.paths).values(records).on_conflict_do_nothing(index_elements=[model.paths.c.inode, model.paths.c.parent_inode])
+        for records in chunk(_walk_generator(path, progress=pbar, scan_time=scan_time), 10000):
+            stmt = Insert(model.paths).values(list(records)).on_conflict_do_nothing(index_elements=[model.paths.c.parent_inode, model.paths.c.inode, model.paths.c.name])
 
-        connection.execute(stmt)
+            connection.execute(stmt)
 
 def autoscan(path, connection):
     """

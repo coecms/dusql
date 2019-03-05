@@ -17,12 +17,76 @@ from __future__ import print_function
 
 from . import model
 from .scan import autoscan
+from . import __version__
 
 import sqlalchemy as sa
 import pandas
 import pwd
 import grp
 import os
+import stat
+from datetime import datetime
+
+
+def to_ncdu(findq, connection):
+    """
+    Format the output of 'find' so it can be read by ``ncdu -e``
+    """
+
+    findq = findq.with_only_columns([model.paths.c.id])
+
+    paths_parents = sa.alias(model.paths_parents)
+
+    # Get the metadata needed by ncdu
+    # Found results, plus all of their parent paths
+    q = (sa.select([
+            model.paths.c.id,
+            model.paths.c.size.label('asize'),
+            model.paths.c.inode.label('ino'),
+            model.paths.c.name,
+            model.paths.c.mode,
+            model.paths.c.uid,
+            model.paths.c.gid,
+            sa.cast(model.paths.c.mtime, sa.Integer).label('mtime'),
+            ])
+            .select_from(model.paths
+                .join(model.paths_parents,
+                    model.paths_parents.c.parent_id == model.paths.c.id))
+            .where(model.paths_parents.c.path_id.in_(findq))
+            .distinct()
+        )
+
+    tree = {None: [{"name": "."}]}
+    for r in connection.execute(q):
+        d = dict(r)
+        d['dsize'] = d['asize']
+        i = d.pop('id')
+        if stat.S_ISDIR(d['mode']):
+            tree[i] = [d]
+        else:
+            tree[i] = d
+
+    # Get the tree edges
+    q = (sa.select([
+            paths_parents.c.parent_id.label('id'),
+            model.paths_parent_id.c.parent_id,
+            ])
+            .select_from(paths_parents
+                .join(model.paths_parent_id,
+                    paths_parents.c.parent_id == model.paths_parent_id.c.id,
+                    isouter=True,
+                ))
+            .where(paths_parents.c.path_id.in_(findq))
+            .distinct()
+        )
+
+    # Construct the tree relationships
+    for r in connection.execute(q):
+        tree[r.parent_id].append(tree[r.id])
+
+    # Return the data ready to be converted to json
+    return [1,1,{"progname": "dusql","progver": __version__,
+        "timestamp": datetime.utcnow().timestamp()},tree[None]]
 
 
 def find(path, connection, older_than=None, user=None, group=None, exclude=None, size=None):
@@ -44,7 +108,7 @@ def find(path, connection, older_than=None, user=None, group=None, exclude=None,
         j = (j.join(model.paths_parents, model.paths.c.id == model.paths_parents.c.path_id)
                 .join(parent_path, parent_path.c.id == model.paths_parents.c.parent_id))
 
-        q = q.select_from(j).where(parent_path.c.parent_inode == path_inode)
+        q = q.select_from(j).where(parent_path.c.inode == path_inode)
 
     if older_than is not None:
         ts = (pandas.Timestamp.now(tz='UTC') - older_than)
@@ -55,7 +119,7 @@ def find(path, connection, older_than=None, user=None, group=None, exclude=None,
         q = q.where(model.paths.c.uid.in_([pwd.getpwnam(u).pw_uid for u in user]))
 
     if group is not None:
-        q = q.where(model.paths.c.uid.in_([grp.getgrnam(g).gr_gid for g in group]))
+        q = q.where(model.paths.c.gid.in_([grp.getgrnam(g).gr_gid for g in group]))
 
     if exclude is not None:
         excl_q = (sa.select([model.paths_parents.c.path_id])

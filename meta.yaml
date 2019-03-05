@@ -19,6 +19,7 @@ requirements:
         - sqlalchemy
         - pandas
         - tqdm
+        - ncdu
 
 build:
     noarch: python
