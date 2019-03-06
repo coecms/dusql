@@ -75,7 +75,7 @@ def scanner(url, progress=None, scan_time=None):
             bufsize=1,
             text=True,
             stdout=subprocess.PIPE) as p:
-        yield from parse_mdss(p.stdout)
+        yield from parse_mdss(p.stdout, progress=progress, scan_time=scan_time)
     if p.returncode != 0:
         raise subprocess.CalledProcessError(p.returncode, p.args)
 
@@ -191,16 +191,14 @@ def parse_mdss(stream, progress=None, scan_time=None):
                 parent_entry = entry
                 continue
 
-            # Parent reference - add the parent inode and yield the directory
             if entry['name'] == '..':
+                # Parent reference - add the parent inode and yield the directory
                 parent_entry['parent_inode'] = entry['inode']
                 yield parent_entry
-                continue
-            
-            entry['parent_inode'] = parent_entry['inode']
-
-            # Yield the entry
-            yield entry
+            else:
+                # Yield the entry
+                entry['parent_inode'] = parent_entry['inode']
+                yield entry
 
             # Update progress bar
             if progress is not None:
