@@ -22,6 +22,8 @@ import io
 import stat
 from urllib.parse import urlparse
 
+import pytest
+
 
 def test_parse_mdss():
 
@@ -41,11 +43,11 @@ total 4
 
     r = list(parse_mdss(stream))
 
-    assert r[0]['inode'] == 1511828760656
-    assert r[0]['parent_inode'] == 1511828541626
-    assert r[0]['uid'] == 5424
-    assert r[0]['gid'] == 5608
-    assert r[0]['size'] == 315973404
+    assert r[1]['inode'] == 1511828760656
+    assert r[1]['parent_inode'] == 1511828541626
+    assert r[1]['uid'] == 5424
+    assert r[1]['gid'] == 5608
+    assert r[1]['size'] == 315973404
 
 
 def test_mode_to_octal():
@@ -66,6 +68,8 @@ def test_mode_to_octal():
     assert stat.filemode(omode) == mode
 
 
+@pytest.mark.skipif(not os.environ['HOSTNAME'].startswith('raijin'),
+        reason="Only available at NCI")
 def test_scan_mdss(conn):
     from dusql.scan import scan
     scan('mdss://w35/saw562', conn)
