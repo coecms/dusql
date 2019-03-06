@@ -68,7 +68,7 @@ def test_mode_to_octal():
     assert stat.filemode(omode) == mode
 
 
-@pytest.mark.skipif(not os.environ['HOSTNAME'].startswith('raijin'),
+@pytest.mark.skipif(not os.environ.get('HOSTNAME','').startswith('raijin'),
         reason="Only available at NCI")
 def test_scan_mdss(conn):
     from dusql.scan import scan
