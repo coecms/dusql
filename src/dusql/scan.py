@@ -18,8 +18,6 @@ from __future__ import print_function
 from . import model
 from .upsert_ext import Insert
 import tqdm
-import os
-import sqlalchemy as sa
 import itertools
 from datetime import datetime
 

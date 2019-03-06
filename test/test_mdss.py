@@ -20,6 +20,7 @@ from dusql.handler.mdss import *
 
 import io
 import stat
+import os
 
 import pytest
 
