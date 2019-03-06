@@ -65,6 +65,7 @@ paths = sa.Table('paths', metadata,
         sa.Column('device', sa.Integer),
         sa.Column('last_seen',sa.Float),
         sa.Column('mdss_state',sa.String),
+        sa.Column('links',sa.String),
         sa.UniqueConstraint('inode','parent_inode','name',name='uniq_inode_edge'),
         )
 

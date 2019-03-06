@@ -20,6 +20,8 @@ from dusql.mdss import *
 
 import io
 import stat
+from urllib.parse import urlparse
+
 
 def test_parse_mdss():
 
@@ -29,23 +31,41 @@ total 4
 1578400487646 drwxrws---  11 0       5608             163 2019-02-04 10:30 (REG) ..
 1511828760656 -rw-r--r--   1 5424    5608       315973404 2016-06-22 14:23 (OFL) historical.pm-1850004001.nc
 1511832938642 -rw-r--r--   1 5424    5608    327483043840 2018-03-05 11:17 (OFL) um-ostia.tar
+1513975992681 drwxrws---   2 5424    5608              10 2016-06-10 11:38 (REG) vapjv
+1733019332892 drwxrws---   2 5424    5608              10 2016-06-16 11:38 (REG) vapjw
+1664309309747 drwxrws---   2 5424    5608              10 2016-10-07 11:22 (REG) vapjy
+
 """
 
     stream = io.StringIO(output)
 
-    for r in parse_mdss(stream):
-        print(r)
+    r = list(parse_mdss(stream))
 
-    assert False
+    assert r[0]['inode'] == 1511828760656
+    assert r[0]['parent_inode'] == 1511828541626
+    assert r[0]['uid'] == 5424
+    assert r[0]['gid'] == 5608
+    assert r[0]['size'] == 315973404
 
 
 def test_mode_to_octal():
     mode = 'drwxrwsr-x'
     omode = mode_to_octal(mode)
-
     assert stat.filemode(omode) == mode
 
     mode = '-rw-r--r--'
     omode = mode_to_octal(mode)
-
     assert stat.filemode(omode) == mode
+
+    mode = 'lrwxrwxrwx'
+    omode = mode_to_octal(mode)
+    assert stat.filemode(omode) == mode
+
+    mode = '---s--x---'
+    omode = mode_to_octal(mode)
+    assert stat.filemode(omode) == mode
+
+
+def test_scan_mdss(conn):
+    from dusql.scan import scan
+    scan('mdss://w35/saw562', conn)

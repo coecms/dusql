@@ -19,39 +19,104 @@
 import re
 import pandas
 import stat
+import subprocess
+import os
+
+parent_re = re.compile(r'(.*/)?(?P<name>.*):')
+count_re = re.compile(r'total (?P<count>\d+)')
+entry_re = re.compile(
+        r'(?P<inode>\d+)\s+(?P<mode>\S{10})\s+(?P<links>\d+)\s+'
+        r'(?P<uid>\d+)\s+(?P<gid>\d+)\s+(?P<size>\d+)\s+'
+        r'(?P<date>\S{10})\s+(?P<time>\S{5})\s+\((?P<mdss_state>\S{3})\)\s+'
+        r'(?P<name>.*)'
+        )
+
+def get_path_id(url, conn):
+    """
+    Get the DB entry of a path on MDSS
+    """
+    if isinstance(url, str):
+        url = urlparse(url)
+
+    try:
+        p = subprocess.run(
+                ['mdss','-P',project,'dmls','-anid','--',path],
+                text=True,
+                capture_output=True)
+    except CalledProcessError:
+        return None
+
+    m = entry_re.matchall(p.stdout.strip())
+    if m is None:
+        return None
+
+    q = (sa.select([model.path.c.id])
+            .where(model.path.c.inode == m.inode)
+            .where(model.path.c.mdss_state != None))
+    return conn.execute(q).scalar()
 
 
-def scan_mdss(project, path):
+def scanner(url, progress=None, scan_time=None):
     """
     Scan files in the MDSS tape store
     """
-    pass
+    if isinstance(url, str):
+        url = urlparse(url)
+
+    project = url.netloc
+    path = os.path.relpath(url.path, '/')
+
+    if project == '':
+        raise Exception('No MDSS project specified')
+
+    with subprocess.Popen(['mdss','-P',project,'dmls','-aniR','--',path],
+            bufsize=1,
+            text=True,
+            stdout=subprocess.PIPE) as p:
+        yield from parse_mdss(p.stdout)
+    if p.returncode != 0:
+        raise CalledProcessError(p.returncode, p.args)
 
 
 def mode_to_octal(mode):
+    """
+    Convert a text mode back to octal
+
+    The opposite of stat.filemode
+    """
     omode = 0
 
     if mode[0] == '-':
         omode |= stat.S_IFREG
-    if mode[0] == 'd':
+    elif mode[0] == 'd':
         omode |= stat.S_IFDIR
+    elif mode[0] == 'l':
+        omode |= stat.S_IFLNK
+
     if mode[1] == 'r':
         omode |= stat.S_IRUSR
     if mode[2] == 'w':
         omode |= stat.S_IWUSR
     if mode[3] == 'x':
         omode |= stat.S_IXUSR
+    elif mode[3] == 's':
+        omode |= stat.S_ISUID
+        omode |= stat.S_IXUSR
+    elif mode[3] == 'S':
+        omode |= stat.S_ISUID
+
     if mode[4] == 'r':
         omode |= stat.S_IRGRP
     if mode[5] == 'w':
         omode |= stat.S_IWGRP
     if mode[6] == 'x':
         omode |= stat.S_IXGRP
-    if mode[6] == 's':
+    elif mode[6] == 's':
         omode |= stat.S_ISGID
         omode |= stat.S_IXGRP
-    if mode[6] == 'S':
+    elif mode[6] == 'S':
         omode |= stat.S_ISGID
+
     if mode[7] == 'r':
         omode |= stat.S_IROTH
     if mode[8] == 'w':
@@ -69,28 +134,23 @@ def process_entry(entry):
 
     entry['mtime'] = pandas.to_datetime(f'{date} {time}').timestamp()
     entry['mode'] = mode_to_octal(entry['mode'])
+    
+    # Convert to int
+    for k in ['uid','gid','size','inode']:
+        entry[k] = int(entry[k])
 
     return entry
 
 
-def parse_mdss(stream):
+def parse_mdss(stream, progress=None, scan_time=None):
     """
     Parses streamed output from `mdss dmls -aniR`, adding found files to the
     database
     """
-    parent_re = re.compile(r'(?P<name>saw562):')
-    count_re = re.compile(r'total (?P<count>\d+)')
-    entry_re = re.compile(
-            r'(?P<inode>\d+)\s+(?P<mode>\S{10})\s+(?P<links>\d+)\s+'
-            r'(?P<uid>\d+)\s+(?P<gid>\d+)\s+(?P<size>\d+)\s+'
-            r'(?P<date>\S{10})\s+(?P<time>\S{5})\s+\((?P<mdss_state>\S{3})\)\s+'
-            r'(?P<name>.*)'
-            )
 
     state = 'new'
     parent_name = None
     parent_entry = {}
-    count = 0
 
     for line in stream:
         line = line.strip()
@@ -107,19 +167,18 @@ def parse_mdss(stream):
             m = count_re.fullmatch(line)
             if m is None:
                 raise Exception(f'state "{state}" line "{line}"')
-            count = int(m.group('count'))
             state = 'entry'
 
         elif state == 'entry':
-            if count == 0:
+            if len(line) == 0:
                 state = 'new'
-                pass
+                continue
             m = entry_re.fullmatch(line)
             if m is None:
                 raise Exception(f'state "{state}" line "{line}"')
 
             entry = m.groupdict()
-            count -= 1
+            entry['last_seen'] = scan_time
 
             # Fix types etc.
             entry = process_entry(entry)
@@ -133,7 +192,7 @@ def parse_mdss(stream):
             # Parent reference - add the parent inode and yield the directory
             if entry['name'] == '..':
                 parent_entry['parent_inode'] = entry['inode']
-                yield parent_entry
+            #    yield parent_entry
                 continue
             
             entry['parent_inode'] = parent_entry['inode']
@@ -141,6 +200,10 @@ def parse_mdss(stream):
             # Yield the entry
             yield entry
 
+            # Update progress bar
+            if progress is not None:
+                progress.update(1)
+
         else:
-            raise Exception
+            raise Exception('Error parsing MDSS state')
 
