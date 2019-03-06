@@ -21,9 +21,7 @@ import tqdm
 import os
 import sqlalchemy as sa
 import itertools
-import pathlib
 from datetime import datetime
-import urllib
 
 from .handler import get_path_id, scanner
 

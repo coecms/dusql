@@ -20,7 +20,6 @@ from dusql.handler.mdss import *
 
 import io
 import stat
-from urllib.parse import urlparse
 
 import pytest
 

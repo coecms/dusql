@@ -20,7 +20,6 @@ import re
 import pandas
 import stat
 import subprocess
-import os
 import sqlalchemy as sa
 from .. import model
 
@@ -42,7 +41,7 @@ def get_path_id(url, conn):
 
     try:
         p = subprocess.run(
-                ['mdss','-P',project,'dmls','-anid','--',path],
+                ['/opt/bin/mdss','-P',project,'dmls','-anid','--',path],
                 text=True,
                 capture_output=True)
     except subprocess.CalledProcessError:
@@ -71,7 +70,7 @@ def scanner(url, progress=None, scan_time=None):
     if project == '':
         raise Exception('No MDSS project specified')
 
-    with subprocess.Popen(['mdss','-P',project,'dmls','-aniR','--',path],
+    with subprocess.Popen(['/opt/bin/mdss','-P',project,'dmls','-aniR','--',path],
             bufsize=1,
             text=True,
             stdout=subprocess.PIPE) as p:
@@ -136,7 +135,7 @@ def process_entry(entry):
 
     entry['mtime'] = pandas.to_datetime(f'{date} {time}').timestamp()
     entry['mode'] = mode_to_octal(entry['mode'])
-    
+
     # Convert to int
     for k in ['uid','gid','size','inode']:
         entry[k] = int(entry[k])
