@@ -17,6 +17,7 @@ from __future__ import print_function
 
 from . import model
 from .scan import autoscan
+from .handler import get_path_id
 import sqlalchemy as sa
 import sqlalchemy.sql.functions as safunc
 import pwd
@@ -25,22 +26,21 @@ import pandas
 import os
 
 
-def report(path, connection):
-    autoscan(path, connection)
+def report(url, connection):
+    autoscan(url, connection)
+    parent_id = get_path_id(url, connection)
 
     total = (sa.sql.select([
-        model.paths.c.uid,
-        model.paths.c.gid,
-        safunc.sum(model.paths.c.size).label('size'),
-        safunc.count().label('inodes')])
+            model.paths.c.uid,
+            model.paths.c.gid,
+            safunc.sum(model.paths.c.size).label('size'),
+            safunc.count().label('inodes')])
+        .select_from(
+            model.paths
+            .join(model.paths_parents, model.paths.c.id == model.paths_parents.c.path_id)
+            )
+        .where(model.paths_parents.c.parent_id == parent_id)
         .group_by(model.paths.c.uid, model.paths.c.gid))
-
-    j = sa.sql.join(model.paths, model.paths_closure, model.paths.c.parent_inode == model.paths_closure.c.id)
-    total = total.select_from(j)
-
-    if path is not None:
-        path_inode = os.stat(path).st_ino
-        total = total.where(model.paths_closure.c.root == path_inode)
 
     df = pandas.read_sql(total, connection)
 
