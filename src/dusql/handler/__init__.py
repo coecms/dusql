@@ -19,6 +19,10 @@
 
 from . import file, mdss
 
+import urllib
+import pathlib
+import os
+
 #: URL schemes dusql knows how to scan
 scheme_handler = {
     '': file,
@@ -58,5 +62,5 @@ def scanner(url, *args, **kwargs):
     under ``url``, using the handler specified by the url's scheme
     """
     url = urlparse(url)
-    return scheme_handler[url.scheme].scanner(url, *args, **kwargs)
+    yield from scheme_handler[url.scheme].scanner(url, *args, **kwargs)
 

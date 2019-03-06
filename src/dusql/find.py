@@ -17,6 +17,7 @@ from __future__ import print_function
 
 from . import model
 from .scan import autoscan
+from .handler import get_path_id
 from . import __version__
 
 import sqlalchemy as sa
@@ -102,13 +103,10 @@ def find(path, connection, older_than=None, user=None, group=None, exclude=None,
         )
 
     if path is not None:
-        path_inode = os.stat(path).st_ino
-        parent_path = sa.alias(model.paths)
+        path_id = get_path_id(path, connection)
 
-        j = (j.join(model.paths_parents, model.paths.c.id == model.paths_parents.c.path_id)
-                .join(parent_path, parent_path.c.id == model.paths_parents.c.parent_id))
-
-        q = q.select_from(j).where(parent_path.c.inode == path_inode)
+        j = j.join(model.paths_parents, model.paths.c.id == model.paths_parents.c.path_id)
+        q = q.select_from(j).where(model.paths_parents.c.parent_id == path_id)
 
     if older_than is not None:
         ts = (pandas.Timestamp.now(tz='UTC') - older_than)

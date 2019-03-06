@@ -21,6 +21,8 @@ import pandas
 import stat
 import subprocess
 import os
+import sqlalchemy as sa
+from .. import model
 
 parent_re = re.compile(r'(.*/)?(?P<name>.*):')
 count_re = re.compile(r'total (?P<count>\d+)')
@@ -35,24 +37,24 @@ def get_path_id(url, conn):
     """
     Get the DB entry of a path on MDSS
     """
-    if isinstance(url, str):
-        url = urlparse(url)
+    project = url.netloc
+    path = url.path
 
     try:
         p = subprocess.run(
                 ['mdss','-P',project,'dmls','-anid','--',path],
                 text=True,
                 capture_output=True)
-    except CalledProcessError:
+    except subprocess.CalledProcessError:
         return None
 
-    m = entry_re.matchall(p.stdout.strip())
+    m = entry_re.fullmatch(p.stdout.strip())
     if m is None:
         return None
 
-    q = (sa.select([model.path.c.id])
-            .where(model.path.c.inode == m.inode)
-            .where(model.path.c.mdss_state != None))
+    q = (sa.select([model.paths.c.id])
+            .where(model.paths.c.inode == int(m.group('inode')))
+            .where(model.paths.c.mdss_state != None))
     return conn.execute(q).scalar()
 
 
@@ -64,7 +66,7 @@ def scanner(url, progress=None, scan_time=None):
         url = urlparse(url)
 
     project = url.netloc
-    path = os.path.relpath(url.path, '/')
+    path = url.path
 
     if project == '':
         raise Exception('No MDSS project specified')
@@ -75,7 +77,7 @@ def scanner(url, progress=None, scan_time=None):
             stdout=subprocess.PIPE) as p:
         yield from parse_mdss(p.stdout)
     if p.returncode != 0:
-        raise CalledProcessError(p.returncode, p.args)
+        raise subprocess.CalledProcessError(p.returncode, p.args)
 
 
 def mode_to_octal(mode):
@@ -192,7 +194,7 @@ def parse_mdss(stream, progress=None, scan_time=None):
             # Parent reference - add the parent inode and yield the directory
             if entry['name'] == '..':
                 parent_entry['parent_inode'] = entry['inode']
-            #    yield parent_entry
+                yield parent_entry
                 continue
             
             entry['parent_inode'] = parent_entry['inode']

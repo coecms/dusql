@@ -16,7 +16,6 @@
 from __future__ import print_function
 
 from . import model
-from . import mdss
 from .upsert_ext import Insert
 import tqdm
 import os
@@ -46,7 +45,7 @@ def scan(url, connection):
     scan_time = datetime.utcnow().timestamp()
 
     with tqdm.tqdm(desc="Directories Scanned") as pbar:
-        s = scanner(parsed_url, progress=pbar, scan_time=scan_time)
+        s = scanner(url, progress=pbar, scan_time=scan_time)
 
         for records in chunk(s, 10000):
             stmt = Insert(model.paths).values(list(records)).on_conflict_do_nothing(index_elements=[model.paths.c.parent_inode, model.paths.c.inode, model.paths.c.name])
