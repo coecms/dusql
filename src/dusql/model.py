@@ -44,8 +44,6 @@ To use the views within sqlite the closure extension must be loaded, e.g. with::
 
 from __future__ import print_function
 
-from .closure_ext import closure_table
-from .view_ext import view
 import sqlalchemy as sa
 
 metadata = sa.MetaData()
