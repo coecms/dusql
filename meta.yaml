@@ -21,6 +21,8 @@ requirements:
         - tqdm
         - ncdu
         - alembic
+        - pyyaml
+        - jsonschema
 
 build:
     noarch: python
