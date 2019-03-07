@@ -24,6 +24,7 @@ import tempfile
 import sys
 import subprocess
 from . import db
+from .config import get_config
 
 
 def parse_size(size):
@@ -52,9 +53,9 @@ class Scan:
     def init_parser(self, parser):
         parser.add_argument('path')
 
-    def call(self, args):
+    def call(self, args, config):
         from .scan import scan
-        conn = db.connect()
+        conn = db.connect(config['database'])
         scan(args.path, conn)
 
 
@@ -64,9 +65,9 @@ class Report:
     def init_parser(self, parser):
         parser.add_argument('path')
 
-    def call(self, args):
+    def call(self, args, config):
         from .report import report
-        conn = db.connect()
+        conn = db.connect(config['database'])
         report(args.path, conn)
 
 
@@ -83,9 +84,9 @@ class Find:
         parser.add_argument('--size',type=parse_size,help="Match files greater than this find-style size (e.g. '20G') (prefix with '-' for less than)")
         parser.add_argument('--format',choices=['list','ncdu'],help="Output listing format")
 
-    def call(self, args):
+    def call(self, args, config):
         from .find import find, to_ncdu
-        conn = db.connect()
+        conn = db.connect(config['database'])
         q = find(args.path, conn, older_than=args.older_than, user=args.user, group=args.group, exclude=args.exclude, size=args.size)
 
         if args.format is None:
@@ -108,17 +109,30 @@ class Find:
                 c = ['ncdu', '-e', '-f', jsonf.name]
                 subprocess.run(c)
 
+class PrintConfig:
+    """
+    Print the current configuration
+    """
+    def init_parser(self, parser):
+        pass
+
+    def call(self, args, config):
+        import yaml
+        print(yaml.dump(config, default_flow_style=False))
+
 
 commands = {
     "scan": Scan(),
     "report": Report(),
     "find": Find(),
+    "print-config": PrintConfig(),
     }
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--config', help='Configuration file')
     subp = parser.add_subparsers()
 
     logging.basicConfig()
@@ -132,9 +146,12 @@ def main():
 
     if args.debug:
         logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+        logging.getLogger(__name__).setLevel(logging.INFO)
+
+    config = get_config(args.config)
 
     try:
-        args.func(args)
+        args.func(args, config=config)
     except Exception as e:
         if not args.debug:
             print(e)

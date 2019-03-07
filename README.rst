@@ -30,12 +30,21 @@ Find files under ``$DIR``::
 
     dusql find --older_than 1y --group w35 $DIR
 
+Configuration
+-------------
+
+``dusql`` reads a yaml config file from ``$HOME/.config/dusql.yaml`` to set the
+database path etc.
+
+To see the curret configuration run::
+
+    dusql print-config
 
 TODO:
+-----
 
 * Add check reports
 * Handle multiple paths in cli arguments
 * Update scans, handle deleted files and changed sizes
-* Change database path (presently it creates `dusql.sqlite` in the current directory)
 * Checks idea: temporary files of failed NCO/CDO commands
 * Add more find arguments, e.g. size, mode
