@@ -1,3 +1,5 @@
 include versioneer.py
 include src/dusql/_version.py
 include src/dusql/closure.so
+include src/dusql/alembic/env.py
+include src/dusql/alembic/versions/*.py

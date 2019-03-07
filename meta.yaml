@@ -20,6 +20,7 @@ requirements:
         - pandas
         - tqdm
         - ncdu
+        - alembic
 
 build:
     noarch: python

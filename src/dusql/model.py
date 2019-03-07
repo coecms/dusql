@@ -44,8 +44,6 @@ To use the views within sqlite the closure extension must be loaded, e.g. with::
 
 from __future__ import print_function
 
-from .closure_ext import closure_table
-from .view_ext import view
 import sqlalchemy as sa
 
 metadata = sa.MetaData()
@@ -69,73 +67,40 @@ paths = sa.Table('paths', metadata,
         sa.UniqueConstraint('inode','parent_inode','name',name='uniq_inode_edge'),
         )
 
-_other_paths = sa.sql.alias(paths)
-
-paths_parent_id = view('paths_parent_id', metadata,
-        sa.sql.select([paths.c.id.label('id'), _other_paths.c.id.label('parent_id')])
-        .select_from(
-            paths
-            .join(_other_paths, _other_paths.c.inode == paths.c.parent_inode)
-            ))
+paths_parent_id = sa.Table('paths_parent_id', metadata,
+        sa.Column('id', sa.Integer, sa.ForeignKey('paths.id'), primary_key=True),
+        sa.Column('parent_id', sa.Integer, sa.ForeignKey('paths.id'))
+        )
 
 
 #: Virtual table describing the tree structure
-paths_closure = closure_table('paths_closure', metadata,
-        tablename='paths_parent_id',
-        idcolumn='id',
-        parentcolumn='parent_id')
+paths_closure = sa.Table('paths_closure', metadata,
+        sa.Column('root', sa.Integer, sa.ForeignKey('paths.id')),
+        sa.Column('id', sa.Integer, sa.ForeignKey('paths.id')),
+        sa.Column('depth', sa.Integer),
+        sa.Column('idcolumn', sa.Text),
+        sa.Column('parentcolumn', sa.Text),
+        )
 
 
 #: Descendents of a given inode
-paths_descendants = view('paths_descendants', metadata,
-        sa.sql.select([
-            paths.c.id.label('path_id'),
-            paths_closure.c.depth.label('depth'),
-            paths_closure.c.id.label('desc_id'),
-            ])
-        .select_from(
-            paths
-            .join(paths_closure, paths.c.id == paths_closure.c.root)
-        )
+paths_descendants = sa.Table('paths_descendants', metadata,
+        sa.Column('path_id', sa.Integer, sa.ForeignKey('paths.id')),
+        sa.Column('desc_id', sa.Integer, sa.ForeignKey('paths.id')),
+        sa.Column('depth', sa.Integer),
         )
 
 
 #: Parents of a given inode
-paths_parents = view('paths_parents', metadata,
-        sa.sql.select([
-            paths.c.id.label('path_id'),
-            paths_closure.c.depth.label('depth'),
-            paths_closure.c.id.label('parent_id'),
-            ])
-        .select_from(
-            paths
-            .join(paths_closure, paths.c.id == paths_closure.c.root)
-        )
-        .where(paths_closure.c.idcolumn == 'parent_id')
-        .where(paths_closure.c.parentcolumn == 'id')
-        )
-
-
-# Subquery to order results correctly for GROUP_CONCAT
-_q = (sa.sql.select([
-        paths_parents.c.path_id,
-        paths_parents.c.depth,
-        paths.c.name,
-        ])
-        .select_from(
-            paths
-            .join(paths_parents, paths.c.id == paths_parents.c.parent_id)
-        )
-        .order_by(paths_parents.c.path_id, paths_parents.c.depth.desc())
+paths_parents = sa.Table('paths_parents', metadata,
+        sa.Column('path_id', sa.Integer, sa.ForeignKey('paths.id')),
+        sa.Column('parent_id', sa.Integer, sa.ForeignKey('paths.id')),
+        sa.Column('depth', sa.Integer),
         )
 
 
 #: Full paths to an inode
-paths_fullpath = view('paths_fullpath', metadata,
-        sa.sql.select([
-            _q.c.path_id.label('path_id'),
-            sa.sql.expression.func.group_concat(_q.c.name,'/').label('path')
-            ])
-        .select_from(_q)
-        .group_by(_q.c.path_id)
+paths_fullpath = sa.Table('paths_fullpath', metadata,
+        sa.Column('path_id', sa.Integer, sa.ForeignKey('paths.id')),
+        sa.Column('path', sa.Text),
         )
