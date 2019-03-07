@@ -49,7 +49,23 @@ schema = {
         'database': {
             'type': 'string',
             'pattern': '^sqlite:///.*$'
-            }
+            },
+        'tags': {
+            'type': 'object',
+            'additionalProperties': {
+                'type': 'object',
+                'properties': {
+                    'description': {'type': 'string'},
+                    'paths': {
+                        'type': 'array',
+                        'items': {'type': 'string'},
+                        },
+                    'checks': {
+                        'type': 'object',
+                        }
+                    },
+                },
+            },
         },
     'required': [
         'database',
@@ -60,6 +76,21 @@ schema = {
 defaults = {
     'database': f'sqlite:///{tempfile.gettempdir()}/{os.environ["USER"]}.dusql.db',
     }
+
+
+def _construct_config(yaml_data):
+    config = {}
+    config.update(defaults)
+
+    data = yaml.safe_load(yaml_data)
+    if data is not None:
+        config.update(data)
+
+    config['database'] = os.path.expandvars(config['database'])
+
+    validate(config, schema)
+
+    return config
 
 
 def get_config(configfile=None):
@@ -85,17 +116,10 @@ def get_config(configfile=None):
         if not os.path.isfile(configfile):
             configfile = None
 
-    config = {}
-    config.update(defaults)
-
     if configfile is not None:
         with open(configfile, 'r') as f:
-            fconfig = yaml.safe_load(f)
-            if fconfig is not None:
-                config.update(fconfig)
-
-    config['database'] = os.path.expandvars(config['database'])
-
-    validate(config, schema)
+            config = _construct_config(f)
+    else:
+        config = _construct_config('')
 
     return config
