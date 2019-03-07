@@ -35,8 +35,7 @@ def upgrade():
         sa.UniqueConstraint('inode','parent_inode','name',name='uniq_inode_edge'),
         )
 
-    op.execute(
-        """
+    op.execute("""
         CREATE VIEW paths_parent_id AS
         SELECT
             paths.id as id,
@@ -44,21 +43,17 @@ def upgrade():
         FROM paths
         JOIN paths AS parent
             ON paths.parent_inode = parent.inode
-        """
-        )
+        """)
 
-    op.execute(
-        """
+    op.execute("""
         CREATE VIRTUAL TABLE paths_closure
         USING transitive_closure(
             tablename=paths_parent_id,
             idcolumn=id,
             parentcolumn=parent_id)
-        """
-        )
+        """)
 
-    op.execute(
-        """
+    op.execute("""
         CREATE VIEW paths_descendants AS
         SELECT
            paths.id AS path_id,
@@ -66,11 +61,9 @@ def upgrade():
            paths_closure.depth AS depth
         FROM paths_closure
         JOIN paths ON root = paths.id
-        """
-        )
+        """)
 
-    op.execute(
-        """
+    op.execute("""
         CREATE VIEW paths_parents AS
         SELECT
            paths.id AS path_id,
@@ -80,11 +73,9 @@ def upgrade():
         JOIN paths ON root = paths.id
         WHERE idcolumn = 'parent_id'
           AND parentcolumn = 'id'
-        """
-        )
+        """)
 
-    op.execute(
-        """
+    op.execute("""
         CREATE VIEW paths_fullpath AS
         WITH s AS (
             SELECT
@@ -102,8 +93,7 @@ def upgrade():
             group_concat(s.name, '/') AS path
         FROM s
         GROUP BY s.path_id
-        """
-        )
+        """)
 
 
 def downgrade():
