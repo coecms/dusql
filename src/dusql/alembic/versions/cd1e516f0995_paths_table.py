@@ -1,7 +1,7 @@
 """paths table
 
 Revision ID: cd1e516f0995
-Revises: 
+Revises:
 Create Date: 2019-03-07 12:53:28.773122
 
 """
