@@ -40,11 +40,6 @@ from jsonschema import validate
 import os
 
 import yaml
-try:
-    from yaml import CLoader as Loader
-except ImportError:
-    from yaml import Loader
-
 import tempfile
 
 #: json schema of the configuration
@@ -95,7 +90,7 @@ def get_config(configfile=None):
 
     if configfile is not None:
         with open(configfile, 'r') as f:
-            fconfig = yaml.load(f, Loader=Loader)
+            fconfig = yaml.safe_load(f)
             if fconfig is not None:
                 config.update(fconfig)
 
