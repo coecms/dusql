@@ -16,6 +16,7 @@
 from __future__ import print_function
 
 from . import model
+from .find import find_roots, find_children
 from .scan import autoscan
 from .handler import get_path_id
 import sqlalchemy as sa
@@ -24,29 +25,45 @@ import pwd
 import grp
 import pandas
 import os
+from datetime import datetime
 
+def report_root_ids(connection, root_ids):
+    rep = []
 
-def report(url, connection):
-    autoscan(url, connection)
-    parent_id = get_path_id(url, connection)
-
-    total = (sa.sql.select([
-            model.paths.c.uid,
-            model.paths.c.gid,
+    subq = sa.alias(find_children(root_ids))
+    q = (
+        sa.select([
+            model.paths.c.uid.label('uid'),
+            model.paths.c.gid.label('gid'),
+            safunc.count().label('inodes'),
             safunc.sum(model.paths.c.size).label('size'),
-            safunc.count().label('inodes')])
+            safunc.min(model.paths.c.last_seen).label('last seen'),
+            ])
         .select_from(
             model.paths
-            .join(model.paths_parents, model.paths.c.id == model.paths_parents.c.path_id)
+            .join(subq, subq.c.id == model.paths.c.id)
             )
-        .where(model.paths_parents.c.parent_id == parent_id)
-        .group_by(model.paths.c.uid, model.paths.c.gid))
+        .group_by(model.paths.c.uid, model.paths.c.gid)
+        )
 
-    df = pandas.read_sql(total, connection)
+    for u in connection.execute(q):
+        u = dict(u)
+        u['user'] = pwd.getpwuid(u['uid']).pw_name
+        u['cn'] = pwd.getpwuid(u['uid']).pw_gecos
+        u['group'] = grp.getgrgid(u['gid']).gr_name
+        if u['last seen'] is not None:
+            u['last seen'] = datetime.fromtimestamp(u['last seen'])
 
-    df['name'] = df['uid'].apply(lambda u: pwd.getpwuid(u).pw_gecos)
-    df['group'] = df['gid'].apply(lambda u: grp.getgrgid(u).gr_name)
+        rep.append(u)
 
-    df['total size (GB)'] = df['size']/1024**3
+    return rep
 
-    print(df[['name','group','total size (GB)','inodes']])
+
+def report(connection):
+    rep = {}
+
+    root_ids = connection.execute(find_roots())
+    for r in root_ids:
+        rep[r.id] = report_root_ids(connection, [r.id])
+
+    return rep

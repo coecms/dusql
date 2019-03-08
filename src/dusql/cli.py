@@ -63,12 +63,12 @@ class Report:
     """
     """
     def init_parser(self, parser):
-        parser.add_argument('path')
+        pass
 
     def call(self, args, config):
         from .report import report
         conn = db.connect(config['database'])
-        report(args.path, conn)
+        print(report(conn))
 
 
 class Find:

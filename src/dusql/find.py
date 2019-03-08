@@ -28,6 +28,58 @@ import stat
 from datetime import datetime
 
 
+def find_children(root_ids):
+    """
+    Get all child ids of the paths identified by root_ids
+
+    Args:
+        root_ids: list of model.path.c.id
+
+    Returns:
+        sa.select of model.paths.c.id
+    """
+
+    q = (
+        sa.select([
+            model.paths.c.id,
+        ])
+        .select_from(
+            model.paths
+            .join(
+                model.paths_closure,
+                model.paths.c.id == model.paths_closure.c.id)
+            )
+        .where(model.paths_closure.c.root.in_(root_ids))
+        .distinct()
+        )
+    return q
+
+
+def find_roots():
+    """
+    Find all root path ids
+
+    Returns:
+        sa.select of model.paths.c.id
+    """
+    q = (
+        sa.select([
+            model.paths.c.id
+            ])
+        .select_from(
+            model.paths
+            .join(
+                model.paths_parent_id,
+                model.paths_parent_id.c.id == model.paths.c.id,
+                isouter=True,
+                )
+            )
+        .where(
+            model.paths_parent_id.c.parent_id == None
+            )
+        )
+    return q
+
 def to_ncdu(findq, connection):
     """
     Format the output of 'find' so it can be read by ``ncdu -e``

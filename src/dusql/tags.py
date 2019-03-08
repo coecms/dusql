@@ -16,34 +16,25 @@
 from __future__ import print_function
 
 from .handler import get_path_id
+from .find import find_children
 from . import model
 
 import sqlalchemy as sa
 import sqlalchemy.sql.functions as safunc
 from datetime import datetime
 
+
 def summarise_tag(conn, tag, config):
     """
     Provide a summary of a single tag
     """
-
-    path_ids = [get_path_id(p, conn) for p in config.get('paths', [])]
-    print(path_ids)
-
-    q = (
-        sa.select([
+    path_ids = [get_path_id(p, conn) for p in root_paths]
+    q = find_children(path_ids)
+    q = q.with_only_columns([
             safunc.count().label('inodes'),
             safunc.sum(model.paths.c.size).label('size'),
             safunc.min(model.paths.c.last_seen).label('last seen'),
         ])
-        .select_from(
-            model.paths
-            .join(
-                model.paths_parents,
-                model.paths.c.id == model.paths_parents.c.path_id)
-            )
-        .where(model.paths_parents.c.parent_id.in_(path_ids))
-        )
 
     r = conn.execute(q).first()
     r = dict(r)
@@ -57,5 +48,8 @@ def summarise_tag(conn, tag, config):
 
 
 def summarise_tags(conn, config):
+    """
+    Summarise all tags
+    """
     for tag, c in config.get('tags', {}):
         yield summarise_tag(conn, tag, c)
