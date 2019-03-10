@@ -28,7 +28,7 @@ def summarise_tag(conn, tag, config):
     """
     Provide a summary of a single tag
     """
-    path_ids = [get_path_id(p, conn) for p in root_paths]
+    path_ids = [get_path_id(p, conn) for p in config.get('paths', [])]
     q = find_children(path_ids)
     q = q.with_only_columns([
             safunc.count().label('inodes'),
@@ -39,12 +39,10 @@ def summarise_tag(conn, tag, config):
     r = conn.execute(q).first()
     r = dict(r)
 
-    r['tag'] = tag
-
     if r['last seen'] is not None:
         r['last seen'] = datetime.fromtimestamp(r['last seen'])
 
-    return r
+    return tag, r
 
 
 def summarise_tags(conn, config):

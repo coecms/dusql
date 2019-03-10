@@ -21,12 +21,9 @@ from dusql import model
 import sqlalchemy as sa
 
 def test_report(conn, sample_db, sample_data):
-    report(sample_data, conn)
+    r = report(conn, config={})
+
+    assert r is not None
+    assert str(sample_data) in r['total']
 
 
-def test_autoscan(conn, sample_data):
-    report(sample_data, conn)
-
-    q = sa.select([model.paths.c.inode])
-    r = conn.execute(q)
-    assert len(list(r)) > 0

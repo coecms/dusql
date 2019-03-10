@@ -64,13 +64,14 @@ def find_roots():
     """
     q = (
         sa.select([
-            model.paths.c.id
+            model.paths_fullpath.c.path_id.label('id'),
+            model.paths_fullpath.c.path,
             ])
         .select_from(
-            model.paths
+            model.paths_fullpath
             .join(
                 model.paths_parent_id,
-                model.paths_parent_id.c.id == model.paths.c.id,
+                model.paths_parent_id.c.id == model.paths_fullpath.c.path_id,
                 isouter=True,
                 )
             )

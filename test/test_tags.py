@@ -18,15 +18,15 @@ from dusql.tags import *
 
 def test_summarise(conn, sample_db, sample_data):
     config = {'paths': [str(sample_data)]}
-    r = summarise_tag(conn, 'a', config)
+    t, r = summarise_tag(conn, 'a', config)
 
-    assert r['tag'] == 'a'
+    assert t == 'a'
     assert r['size'] > 1
     assert r['inodes'] > 1
     assert r['last seen'] is not None
 
     config = {}
-    r = summarise_tag(conn, 'b', config)
+    t, r = summarise_tag(conn, 'b', config)
 
     assert r['size'] is None
     assert r['inodes'] == 0

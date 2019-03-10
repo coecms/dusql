@@ -19,6 +19,7 @@ from . import model
 from .find import find_roots, find_children
 from .scan import autoscan
 from .handler import get_path_id
+from .tags import summarise_tags
 import sqlalchemy as sa
 import sqlalchemy.sql.functions as safunc
 import pwd
@@ -59,11 +60,14 @@ def report_root_ids(connection, root_ids):
     return rep
 
 
-def report(connection):
-    rep = {}
+def report(connection, config):
+    rep = {'tags': {}, 'total': {}}
+
+    for tag, r in summarise_tags(connection, config):
+        rep['tags'][tag] = r
 
     root_ids = connection.execute(find_roots())
     for r in root_ids:
-        rep[r.id] = report_root_ids(connection, [r.id])
+        rep['total'][r.path] = report_root_ids(connection, [r.id])
 
     return rep
