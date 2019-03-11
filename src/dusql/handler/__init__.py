@@ -44,6 +44,9 @@ def urlparse(url):
     if url.scheme != '':
         url = url._replace(path = os.path.relpath(url.path, '/'))
 
+    if url.scheme in ['', 'file']:
+        url = url._replace(path = os.path.abspath(url.path))
+
     return url
 
 

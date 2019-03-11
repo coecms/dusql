@@ -20,8 +20,9 @@ from .upsert_ext import Insert
 import tqdm
 import itertools
 from datetime import datetime
+from urllib.parse import urlunparse
 
-from .handler import get_path_id, scanner
+from .handler import get_path_id, scanner, urlparse
 
 
 def chunk(iterable, size):
@@ -47,6 +48,15 @@ def scan(url, connection):
             stmt = Insert(model.paths).values(list(records)).on_conflict_do_nothing(index_elements=[model.paths.c.parent_inode, model.paths.c.inode, model.paths.c.name])
 
             connection.execute(stmt)
+
+    # Set the root path to the normalised url
+    i = get_path_id(url, connection)
+    connection.execute(
+            Insert(model.root_paths)
+            .values({'path_id': i, 'path': urlunparse(urlparse(url))})
+            .on_conflict_do_nothing(index_elements=[model.root_paths.c.path_id])
+            )
+
 
 def autoscan(url, connection):
     """

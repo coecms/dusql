@@ -26,6 +26,7 @@ import pwd
 import grp
 import pandas
 import os
+import sys
 from datetime import datetime
 
 def report_root_ids(connection, root_ids):
@@ -45,6 +46,7 @@ def report_root_ids(connection, root_ids):
             .join(subq, subq.c.id == model.paths.c.id)
             )
         .group_by(model.paths.c.uid, model.paths.c.gid)
+        .order_by(sa.desc('size'))
         )
 
     for u in connection.execute(q):
@@ -71,3 +73,22 @@ def report(connection, config):
         rep['total'][r.path] = report_root_ids(connection, [r.id])
 
     return rep
+
+
+def print_report(report, stream=sys.stdout):
+    """
+    Print a report
+    """
+    print("Tags:", file=stream)
+    for t, r in report['tags'].items():
+        print(f"{' '*4}%-8s {' '*13}% 8.1f gb % 8d"%(
+            t, r['size'] / 1024**3, r['inodes']
+            ), file=stream)
+
+    print("Scanned Paths:", file=stream)
+    for p, rs in report['total'].items():
+        print(f"{' '*4}{p}", file=stream)
+        for r in rs:
+            print(f"{' '*8}%-8s %-8s % 8.1f gb % 8d"%(
+                r['user'], r['group'], r['size'] / 1024**3, r['inodes']
+                ), file=stream)

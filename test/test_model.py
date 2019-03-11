@@ -51,12 +51,8 @@ def test_paths_fullpath(conn, sample_db, sample_data):
     paths = [r.path for r in conn.execute(q)]
 
     for p, _, fs in os.walk(sample_data):
-        relpath = os.path.relpath(p, os.path.join(sample_data,'..'))
-        if relpath == '.':
-            continue
-
-        assert relpath in paths
+        assert p in paths
 
         for f in fs:
-            assert os.path.join(relpath, f) in paths
+            assert os.path.join(p, f) in paths
 

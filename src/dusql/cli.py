@@ -66,9 +66,9 @@ class Report:
         pass
 
     def call(self, args, config):
-        from .report import report
+        from .report import report, print_report
         conn = db.connect(config['database'])
-        print(report(conn))
+        print_report(report(conn, config))
 
 
 class Find:

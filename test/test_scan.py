@@ -34,18 +34,24 @@ def test_scan_sample(conn, sample_db, sample_data):
 
 def test_scan_twice(conn, sample_db, sample_data):
     # Scanning the same directory twice should not change data
-    q = sa.select([model.paths_fullpath.c.path])
+    q = sa.select([model.paths.c.id])
     r = conn.execute(q)
     assert len(list(r)) == count_files(sample_data)
 
     scan(sample_data, conn)
 
-    q = sa.select([model.paths_fullpath.c.path])
+    q = sa.select([model.paths.c.id])
     r = conn.execute(q)
     assert len(list(r)) == count_files(sample_data)
 
 
 def test_scan_root(conn, sample_db, sample_data):
+    # Root path should be in the table
+    q = sa.select([model.root_paths.c.path])
+    r = list(conn.execute(q))
+    assert len(r) == 1
+    assert r[0].path == str(sample_data)
+
     # Get the root entry
     q = (sa.select([
         model.paths_fullpath.c.path,
@@ -60,15 +66,14 @@ def test_scan_root(conn, sample_db, sample_data):
     r = list(conn.execute(q))
 
     assert r[0].parent_inode == 0
-    assert r[0].path == sample_data.name
+    assert r[0].path == str(sample_data)
 
+    # Parent of 'a' should be the root path
     root_inode = r[0].inode
-
     q = (sa.select([
             model.paths.c.parent_inode,
             ])
             .where(model.paths.c.inode == (sample_data / 'a').stat().st_ino))
     r = conn.execute(q).scalar()
-
     assert r == root_inode
 

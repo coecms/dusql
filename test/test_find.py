@@ -45,8 +45,8 @@ def test_find_subtree(conn, sample_data, sample_db):
     # Find all files under 'a/c'
     q = find(path=sample_data / 'a' / 'c', connection=conn)
     results = [r.path for r in conn.execute(q)]
-    assert to_relpath('a/c/d/e', sample_data) in results
-    assert to_relpath('a/b/f', sample_data) not in results
+    assert str(sample_data / 'a/c/d/e') in results
+    assert str(sample_data / 'a/b/f') not in results
     assert len(results) == count_files(sample_data / 'a' / 'c')
 
 

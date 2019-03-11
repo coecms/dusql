@@ -49,5 +49,5 @@ def summarise_tags(conn, config):
     """
     Summarise all tags
     """
-    for tag, c in config.get('tags', {}):
+    for tag, c in config.get('tags', {}).items():
         yield summarise_tag(conn, tag, c)
