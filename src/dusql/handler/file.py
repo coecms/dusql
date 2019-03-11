@@ -70,7 +70,11 @@ def _walk_generator(path, parent_inode=None, progress=None, scan_time=None):
         # Recurse into directories
         if inode.is_dir(follow_symlinks=False):
             try:
-                yield from _walk_generator(inode.path, parent_inode=stat.st_ino, progress=progress)
+                yield from _walk_generator(
+                        inode.path,
+                        parent_inode=stat.st_ino,
+                        progress=progress,
+                        scan_time=scan_time)
             except FileNotFoundError:
                 pass
 

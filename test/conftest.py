@@ -24,7 +24,7 @@ import os
 @pytest.fixture
 def conn():
     return connect('sqlite:///:memory:', echo=False)
-    #return connect('sqlite:///test.sqlite', echo=False)
+    #return connect('sqlite:///test.sqlite', echo=True)
 
 
 @pytest.fixture(scope="session")

@@ -31,6 +31,10 @@ def test_scan_sample(conn, sample_db, sample_data):
     # Note the root path is not included in the scan
     assert len(list(r)) == count_files(sample_data)
 
+    q = sa.select([model.paths.c.name, model.paths.c.last_seen])
+    for r in conn.execute(q):
+        assert r.last_seen is not None
+
 
 def test_scan_twice(conn, sample_db, sample_data):
     # Scanning the same directory twice should not change data
@@ -77,3 +81,46 @@ def test_scan_root(conn, sample_db, sample_data):
     r = conn.execute(q).scalar()
     assert r == root_inode
 
+def test_delete(conn, tmp_path):
+    a = tmp_path / 'a'
+    b = a / 'b'
+    c = a / 'c'
+    d = a / 'd'
+    for p in [a,b,c,d]:
+        p.mkdir()
+    scan(tmp_path, conn)
+    q = sa.select([sa.func.count()]).select_from(model.paths)
+    r = conn.execute(q).scalar()
+    assert r == count_files(tmp_path)
+
+    # Remove a file and scan it
+    b.rmdir()
+    scan(tmp_path, conn)
+    q = sa.select([sa.func.count()]).select_from(model.paths)
+    r = conn.execute(q).scalar()
+    assert r == count_files(tmp_path)
+
+    # Remove a file and don't scan it - doesn't update DB
+    d.rmdir()
+    scan(c, conn)
+    q = sa.select([sa.func.count()]).select_from(model.paths)
+    r = conn.execute(q).scalar()
+    assert r != count_files(tmp_path)
+
+def test_update(conn, tmp_path):
+    a = tmp_path / 'a'
+    b = a / 'b'
+    for p in [a,b]:
+        p.mkdir()
+    c = b / 'c'
+    c.write_text('hello')
+    scan(tmp_path, conn)
+    q = sa.select([model.paths.c.size]).where(model.paths.c.inode == c.stat().st_ino)
+    r = conn.execute(q).scalar()
+    assert r == c.stat().st_size
+
+    c.write_text(' world!')
+    scan(tmp_path, conn)
+    q = sa.select([model.paths.c.size]).where(model.paths.c.inode == c.stat().st_ino)
+    r = conn.execute(q).scalar()
+    assert r == c.stat().st_size
