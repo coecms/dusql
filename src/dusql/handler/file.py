@@ -73,6 +73,8 @@ def _walk_generator(path, parent_inode=None, progress=None, scan_time=None):
                 yield from _walk_generator(inode.path, parent_inode=stat.st_ino, progress=progress)
             except FileNotFoundError:
                 pass
+            except PermissionError:
+                pass
 
 
 def scanner(url, progress=None, scan_time=None):
