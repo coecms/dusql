@@ -35,7 +35,7 @@ def get_path_id(url, conn):
 
 def _single_file(path, scan_time):
     name = os.path.basename(path)
-    parent_inode = 0
+    parent_inode = os.stat(os.path.join(path, '..')).st_ino
     stat = os.stat(path)
     return _single_file_record(name, parent_inode, stat, scan_time)
 

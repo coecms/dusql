@@ -16,7 +16,6 @@
 from __future__ import print_function
 
 from . import model
-from .scan import autoscan
 from .handler import get_path_id
 from . import __version__
 
@@ -143,7 +142,6 @@ def to_ncdu(findq, connection):
 
 
 def find(path, connection, older_than=None, user=None, group=None, exclude=None, size=None):
-    autoscan(path, connection)
 
     j = (model.paths_fullpath
         .join(model.paths, model.paths.c.id == model.paths_fullpath.c.path_id))

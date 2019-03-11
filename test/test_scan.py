@@ -65,7 +65,7 @@ def test_scan_root(conn, sample_db, sample_data):
 
     r = list(conn.execute(q))
 
-    assert r[0].parent_inode == 0
+    assert r[0].parent_inode == (sample_data / '..').stat().st_ino
     assert r[0].path == str(sample_data)
 
     # Parent of 'a' should be the root path
