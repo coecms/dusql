@@ -66,6 +66,18 @@ through the config file, a sample configuration is::
             paths:
               - /short/w35/saw562/conda
 
+Scanning Tape Storage
+---------------------
+
+``dusql`` can be extended to support other types of storage, such as tape
+stores, provided there is a way to get directory information (e.g. by running
+``ls -lir``)
+
+To scan a tape store pass a URL as the path to scan, which specifies the
+storage system and path. Supported URL types are:
+
+* [NCI](https://nci.org.au) MDSS: ``mdss://$PROJECT/$PATH``
+
 TODO:
 -----
 
