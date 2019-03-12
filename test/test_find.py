@@ -50,18 +50,6 @@ def test_find_subtree(conn, sample_data, sample_db):
     assert len(results) == count_files(sample_data / 'a' / 'c')
 
 
-def test_autoscan(conn, sample_data):
-    # Should automatically scan the path
-    q = find(path=sample_data, connection=conn)
-    results = conn.execute(q)
-
-    print(q)
-
-    assert conn.execute(sa.sql.select([sa.func.count()]).select_from(model.paths)).scalar() == count_files(sample_data)
-
-    assert len(list(results)) == count_files(sample_data)
-
-
 def test_exclude(conn, sample_data, sample_db):
     # Find all files except those under 'a/c'
     q = find(sample_data, conn, exclude='c')
