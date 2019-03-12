@@ -59,7 +59,7 @@ class OnConflictDoUpdate(schema.ClauseElement):
         self.upsert_values = values
 
 @compiler.compiles(OnConflictDoUpdate)
-def compile_do_nothing(element, compiler, **kw):
+def compile_do_update(element, compiler, **kw):
     conflict_target = ''
 
     if element.index_elements is not None:

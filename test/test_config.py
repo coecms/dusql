@@ -19,6 +19,7 @@ from dusql.config import _construct_config
 
 def test_empty():
     c = _construct_config('')
+    assert 'database' in c
 
 def test_tags():
     c = _construct_config("""
