@@ -55,7 +55,7 @@ Tagging Directories
 -------------------
 
 You can tag directories to add summaries to ``dusql report``. This is done
-through the config file, a sample configuration is::
+through the `Configuration`_, a config file to create the report above is::
 
     tags:
         umdata:
@@ -65,6 +65,10 @@ through the config file, a sample configuration is::
         conda:
             paths:
               - /short/w35/saw562/conda
+
+The meaning of tags is up to the user - they could help monitor the size of
+temporary directories, or allow you to find files related to a specific project
+more easily.
 
 Scanning Tape Storage
 ---------------------
@@ -76,7 +80,7 @@ stores, provided there is a way to get directory information (e.g. by running
 To scan a tape store pass a URL as the path to scan, which specifies the
 storage system and path. Supported URL types are:
 
-* [NCI](https://nci.org.au) MDSS: ``mdss://$PROJECT/$PATH``
+* `NCI <https://nci.org.au>`_ MDSS: ``mdss://$PROJECT/$PATH``
 
 TODO:
 -----
