@@ -47,7 +47,7 @@ Configuration
 ``dusql`` reads a yaml config file from ``$HOME/.config/dusql.yaml`` to set the
 database path etc.
 
-To see the curret configuration run::
+To see the current configuration run::
 
     dusql print-config
 
