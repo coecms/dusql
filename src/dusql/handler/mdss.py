@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import re
 import pandas
 import stat
@@ -26,9 +27,9 @@ from .. import model
 parent_re = re.compile(r'(.*/)?(?P<name>.*):')
 count_re = re.compile(r'total (?P<count>\d+)')
 entry_re = re.compile(
-        r'(?P<inode>\d+)\s+(?P<mode>\S{10})\s+(?P<links>\d+)\s+'
+        r'(?P<inode>\d+)\s+(?P<mode>\S{10})\+?\s+(?P<links>\d+)\s+'
         r'(?P<uid>\d+)\s+(?P<gid>\d+)\s+(?P<size>\d+)\s+'
-        r'(?P<date>\S{10})\s+(?P<time>\S{5})\s+\((?P<mdss_state>\S{3})\)\s+'
+        r'(?P<date>\S{10})\s+(?P<time>\S{5})\s+\((?P<mdss_state>.{3})\)\s+'
         r'(?P<name>.*)'
         )
 
@@ -70,13 +71,14 @@ def scanner(url, progress=None, scan_time=None):
     if project == '':
         raise Exception('No MDSS project specified')
 
-    with subprocess.Popen(['/opt/bin/mdss','-P',project,'dmls','-aniR','--',path],
+    cmd = ['/opt/bin/mdss','-P',project,'dmls','-aniR','--',path]
+    with subprocess.Popen(cmd,
             bufsize=1,
             text=True,
             stdout=subprocess.PIPE) as p:
         yield from parse_mdss(p.stdout, progress=progress, scan_time=scan_time)
     if p.returncode != 0:
-        raise subprocess.CalledProcessError(p.returncode, p.args)
+        logging.getLogger(__name__).warning(f'Command "{" ".join(p.args)}" failed with code {p.returncode}')
 
 
 def mode_to_octal(mode):
@@ -161,7 +163,7 @@ def parse_mdss(stream, progress=None, scan_time=None):
             if m is None:
                 raise Exception(f'state "{state}" line "{line}"')
             parent_name = m.group('name')
-            parent_entry = {}
+            parent_entry = {'inode': None}
             state = 'count'
 
         elif state == 'count':
