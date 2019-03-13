@@ -17,11 +17,14 @@ from __future__ import print_function
 
 from . import model
 from .upsert_ext import Insert
+from .find import find_children
 import tqdm
 import itertools
 from datetime import datetime
+from urllib.parse import urlunparse
+import sqlalchemy as sa
 
-from .handler import get_path_id, scanner
+from .handler import get_path_id, scanner, urlparse
 
 
 def chunk(iterable, size):
@@ -40,13 +43,65 @@ def scan(url, connection):
     """
     scan_time = datetime.utcnow().timestamp()
 
-    with tqdm.tqdm(desc="Directories Scanned") as pbar:
-        s = scanner(url, progress=pbar, scan_time=scan_time)
+    # Get the count currently in the db
+    i = get_path_id(url, connection)
+    expected = None
+    if i is not None:
+        expected = connection.execute(
+                find_children([i])
+                .with_only_columns([sa.func.count()])
+                ).scalar()
 
-        for records in chunk(s, 10000):
-            stmt = Insert(model.paths).values(list(records)).on_conflict_do_nothing(index_elements=[model.paths.c.parent_inode, model.paths.c.inode, model.paths.c.name])
+
+    with tqdm.tqdm(total=expected, desc="Directories Scanned") as pbar:
+        s = scanner(url, progress=None, scan_time=scan_time)
+
+        for records in chunk(s, 5000):
+            rs = list(records)
+            stmt = (
+                Insert(model.paths)
+                .values(rs)
+                .on_conflict_do_update(
+                    values={
+                        'size': 'excluded.size',
+                        'mtime': 'excluded.mtime',
+                        'ctime': 'excluded.ctime',
+                        'uid': 'excluded.uid',
+                        'gid': 'excluded.gid',
+                        'mode': 'excluded.mode',
+                        'device': 'excluded.device',
+                        'last_seen': 'excluded.last_seen',
+                        'mdss_state': 'excluded.mdss_state',
+                        'links': 'excluded.links',
+                        },
+                    index_elements = [
+                        model.paths.c.inode,
+                        model.paths.c.parent_inode,
+                        model.paths.c.name,
+                        ]
+                    )
+                )
 
             connection.execute(stmt)
+            pbar.update(len(rs))
+
+    # Set the root path to the normalised url
+    i = get_path_id(url, connection)
+    connection.execute(
+            Insert(model.root_paths)
+            .values({'path_id': i, 'path': urlunparse(urlparse(url))})
+            .on_conflict_do_nothing(index_elements=[model.root_paths.c.path_id])
+            )
+
+    # Clean out deleted files
+    connection.execute(
+            model.paths
+            .delete()
+            .where(model.paths.c.last_seen < scan_time)
+            .where(model.paths.c.id.in_(find_children([i])))
+            )
+
+
 
 def autoscan(url, connection):
     """

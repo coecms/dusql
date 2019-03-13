@@ -104,3 +104,9 @@ paths_fullpath = sa.Table('paths_fullpath', metadata,
         sa.Column('path_id', sa.Integer, sa.ForeignKey('paths.id')),
         sa.Column('path', sa.Text),
         )
+
+#: Root directory of scans, for finding absolute paths
+root_paths = sa.Table('root_paths', metadata,
+        sa.Column('path_id', sa.Integer, sa.ForeignKey('paths.id')),
+        sa.Column('path', sa.Text),
+        )

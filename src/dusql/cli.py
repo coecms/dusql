@@ -25,6 +25,7 @@ import sys
 import subprocess
 from . import db
 from .config import get_config
+from .scan import autoscan
 
 
 def parse_size(size):
@@ -63,12 +64,12 @@ class Report:
     """
     """
     def init_parser(self, parser):
-        parser.add_argument('path')
+        pass
 
     def call(self, args, config):
-        from .report import report
+        from .report import report, print_report
         conn = db.connect(config['database'])
-        report(args.path, conn)
+        print_report(report(conn, config))
 
 
 class Find:
@@ -87,6 +88,9 @@ class Find:
     def call(self, args, config):
         from .find import find, to_ncdu
         conn = db.connect(config['database'])
+
+        autoscan(args.path, conn)
+
         q = find(args.path, conn, older_than=args.older_than, user=args.user, group=args.group, exclude=args.exclude, size=args.size)
 
         if args.format is None:

@@ -15,15 +15,22 @@
 # limitations under the License.
 from __future__ import print_function
 
-from dusql.report import report
+from dusql.config import _construct_config
 
-from dusql import model
-import sqlalchemy as sa
+def test_empty():
+    c = _construct_config('')
+    assert 'database' in c
 
-def test_report(conn, sample_db, sample_data):
-    r = report(conn, config={})
+def test_tags():
+    c = _construct_config("""
+    tags:
+        umdata:
+            paths:
+                - /g/data/w35/um
+                - /short/w35/cylc-run
+            checks:
+                group-readable: w35
+    """)
 
-    assert r is not None
-    assert str(sample_data) in r['total']
-
-
+    assert 'umdata' in c['tags']
+    assert '/g/data/w35/um' in c['tags']['umdata']['paths']

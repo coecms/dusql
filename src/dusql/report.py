@@ -16,37 +16,79 @@
 from __future__ import print_function
 
 from . import model
+from .find import find_roots, find_children
 from .scan import autoscan
 from .handler import get_path_id
+from .tags import summarise_tags
 import sqlalchemy as sa
 import sqlalchemy.sql.functions as safunc
 import pwd
 import grp
 import pandas
 import os
+import sys
+from datetime import datetime
 
+def report_root_ids(connection, root_ids):
+    rep = []
 
-def report(url, connection):
-    autoscan(url, connection)
-    parent_id = get_path_id(url, connection)
-
-    total = (sa.sql.select([
-            model.paths.c.uid,
-            model.paths.c.gid,
+    subq = sa.alias(find_children(root_ids))
+    q = (
+        sa.select([
+            model.paths.c.uid.label('uid'),
+            model.paths.c.gid.label('gid'),
+            safunc.count().label('inodes'),
             safunc.sum(model.paths.c.size).label('size'),
-            safunc.count().label('inodes')])
+            safunc.min(model.paths.c.last_seen).label('last seen'),
+            ])
         .select_from(
             model.paths
-            .join(model.paths_parents, model.paths.c.id == model.paths_parents.c.path_id)
+            .join(subq, subq.c.id == model.paths.c.id)
             )
-        .where(model.paths_parents.c.parent_id == parent_id)
-        .group_by(model.paths.c.uid, model.paths.c.gid))
+        .group_by(model.paths.c.uid, model.paths.c.gid)
+        .order_by(sa.desc('size'))
+        )
 
-    df = pandas.read_sql(total, connection)
+    for u in connection.execute(q):
+        u = dict(u)
+        u['user'] = pwd.getpwuid(u['uid']).pw_name
+        u['cn'] = pwd.getpwuid(u['uid']).pw_gecos
+        u['group'] = grp.getgrgid(u['gid']).gr_name
+        if u['last seen'] is not None:
+            u['last seen'] = datetime.fromtimestamp(u['last seen'])
 
-    df['name'] = df['uid'].apply(lambda u: pwd.getpwuid(u).pw_gecos)
-    df['group'] = df['gid'].apply(lambda u: grp.getgrgid(u).gr_name)
+        rep.append(u)
 
-    df['total size (GB)'] = df['size']/1024**3
+    return rep
 
-    print(df[['name','group','total size (GB)','inodes']])
+
+def report(connection, config):
+    rep = {'tags': {}, 'total': {}}
+
+    for tag, r in summarise_tags(connection, config):
+        rep['tags'][tag] = r
+
+    root_ids = connection.execute(find_roots())
+    for r in root_ids:
+        rep['total'][r.path] = report_root_ids(connection, [r.id])
+
+    return rep
+
+
+def print_report(report, stream=sys.stdout):
+    """
+    Print a report
+    """
+    print("Tags:", file=stream)
+    for t, r in report['tags'].items():
+        print(f"{' '*4}%-8s {' '*13}% 8.1f gb % 8d"%(
+            t, r['size'] / 1024**3, r['inodes']
+            ), file=stream)
+
+    print("Scanned Paths:", file=stream)
+    for p, rs in report['total'].items():
+        print(f"{' '*4}{p}", file=stream)
+        for r in rs:
+            print(f"{' '*8}%-8s %-8s % 8.1f gb % 8d"%(
+                r['user'], r['group'], r['size'] / 1024**3, r['inodes']
+                ), file=stream)

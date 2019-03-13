@@ -14,16 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import print_function
+from dusql.tags import *
 
-from dusql.report import report
+def test_summarise(conn, sample_db, sample_data):
+    config = {'paths': [str(sample_data)]}
+    t, r = summarise_tag(conn, 'a', config)
 
-from dusql import model
-import sqlalchemy as sa
+    assert t == 'a'
+    assert r['size'] > 1
+    assert r['inodes'] > 1
+    assert r['last seen'] is not None
 
-def test_report(conn, sample_db, sample_data):
-    r = report(conn, config={})
+    config = {}
+    t, r = summarise_tag(conn, 'b', config)
 
-    assert r is not None
-    assert str(sample_data) in r['total']
-
-
+    assert r['size'] is None
+    assert r['inodes'] == 0
+    assert r['last seen'] is None

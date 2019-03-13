@@ -35,7 +35,7 @@ def get_path_id(url, conn):
 
 def _single_file(path, scan_time):
     name = os.path.basename(path)
-    parent_inode = 0
+    parent_inode = os.stat(os.path.join(path, '..')).st_ino
     stat = os.stat(path)
     return _single_file_record(name, parent_inode, stat, scan_time)
 
@@ -70,7 +70,11 @@ def _walk_generator(path, parent_inode=None, progress=None, scan_time=None):
         # Recurse into directories
         if inode.is_dir(follow_symlinks=False):
             try:
-                yield from _walk_generator(inode.path, parent_inode=stat.st_ino, progress=progress)
+                yield from _walk_generator(
+                        inode.path,
+                        parent_inode=stat.st_ino,
+                        progress=progress,
+                        scan_time=scan_time)
             except FileNotFoundError:
                 pass
             except PermissionError:
