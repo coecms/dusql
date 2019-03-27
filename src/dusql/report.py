@@ -38,7 +38,7 @@ def report_root_ids(connection, root_ids):
             model.paths.c.uid.label('uid'),
             model.paths.c.gid.label('gid'),
             safunc.count().label('inodes'),
-            safunc.sum(model.paths.c.size).label('size'),
+            safunc.coalesce(safunc.sum(model.paths.c.size), 0).label('size'),
             safunc.min(model.paths.c.last_seen).label('last seen'),
             ])
         .select_from(
@@ -65,12 +65,10 @@ def report_root_ids(connection, root_ids):
 def report(connection, config):
     rep = {'tags': {}, 'total': {}}
 
-    for tag, r in summarise_tags(connection, config):
-        rep['tags'][tag] = r
+    rep['tags'] = ((t, r) for t, r in summarise_tags(connection, config))
 
     root_ids = connection.execute(find_roots())
-    for r in root_ids:
-        rep['total'][r.path] = report_root_ids(connection, [r.id])
+    rep['total'] = ((r.path, report_root_ids(connection, [r.id])) for r in root_ids)
 
     return rep
 
@@ -80,13 +78,13 @@ def print_report(report, stream=sys.stdout):
     Print a report
     """
     print("Tags:", file=stream)
-    for t, r in report['tags'].items():
+    for t, r in report['tags']:
         print(f"{' '*4}%-8s {' '*13}% 8.1f gb % 8d"%(
             t, r['size'] / 1024**3, r['inodes']
             ), file=stream)
 
     print("Scanned Paths:", file=stream)
-    for p, rs in report['total'].items():
+    for p, rs in report['total']:
         print(f"{' '*4}{p}", file=stream)
         for r in rs:
             print(f"{' '*8}%-8s %-8s % 8.1f gb % 8d"%(
