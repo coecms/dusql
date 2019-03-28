@@ -70,10 +70,15 @@ class NetCDFCompression(Check):
         self.filename_pattern = filename_pattern
 
     def query(self, root_ids, connection):
-        netcdf_files = (find_children(root_ids)
+        children = find_children(root_ids)
+        netcdf_files = (children
+                .select_from(
+                    children
+                    .join(model.basenames, model.paths.c.basename_id == model.basenames.c.id)
+                    )
                 .where(model.paths.c.size > self.min_size)
                 .where(model.paths.c.mode.op('&')(stat.S_IFREG))
-                .where(model.paths.c.name.op('GLOB')(self.filename_pattern))
+                .where(model.basenames.c.name.op('GLOB')(self.filename_pattern))
                 .alias('netcdf_files')
                 )
 

@@ -33,6 +33,8 @@ entry_re = re.compile(
         r'(?P<name>.*)'
         )
 
+MDSS_DEVICE = -1
+
 def get_path_id(url, conn):
     """
     Get the DB entry of a path on MDSS
@@ -54,11 +56,11 @@ def get_path_id(url, conn):
 
     q = (sa.select([model.paths.c.id])
             .where(model.paths.c.inode == int(m.group('inode')))
-            .where(model.paths.c.mdss_state != None))
+            .where(model.paths.c.device == MDSS_DEVICE))
     return conn.execute(q).scalar()
 
 
-def scanner(url, progress=None, scan_time=None):
+def scanner(url, scan_time=None):
     """
     Scan files in the MDSS tape store
     """
@@ -76,7 +78,7 @@ def scanner(url, progress=None, scan_time=None):
             bufsize=1,
             text=True,
             stdout=subprocess.PIPE) as p:
-        yield from parse_mdss(p.stdout, progress=progress, scan_time=scan_time)
+        yield from parse_mdss(p.stdout, scan_time=scan_time)
     if p.returncode != 0:
         logging.getLogger(__name__).warning(f'Command "{" ".join(p.args)}" failed with code {p.returncode}')
 
@@ -135,6 +137,8 @@ def process_entry(entry):
     date = entry.pop('date')
     time = entry.pop('time')
 
+    entry['device'] = MDSS_DEVICE
+    entry['parent_device'] = MDSS_DEVICE
     entry['mtime'] = pandas.to_datetime(f'{date} {time}').timestamp()
     entry['mode'] = mode_to_octal(entry['mode'])
 
@@ -145,7 +149,7 @@ def process_entry(entry):
     return entry
 
 
-def parse_mdss(stream, progress=None, scan_time=None):
+def parse_mdss(stream, scan_time=None):
     """
     Parses streamed output from `mdss dmls -aniR`, adding found files to the
     database
@@ -200,10 +204,6 @@ def parse_mdss(stream, progress=None, scan_time=None):
                 # Yield the entry
                 entry['parent_inode'] = parent_entry['inode']
                 yield entry
-
-            # Update progress bar
-            if progress is not None:
-                progress.update(1)
 
         else:
             raise Exception('Error parsing MDSS state')

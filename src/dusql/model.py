@@ -49,29 +49,51 @@ import sqlalchemy as sa
 metadata = sa.MetaData()
 
 #: Inode information from scanning the filesystem
-paths = sa.Table('paths', metadata,
+paths_ingest = sa.Table('paths_ingest', metadata,
         sa.Column('id',sa.Integer,primary_key=True),
         sa.Column('name',sa.String),
-        sa.Column('inode',sa.Integer,index=True),
+        sa.Column('inode',sa.Integer),
+        sa.Column('device', sa.Integer),
+
+        sa.Column('parent_inode',sa.Integer),
+        sa.Column('parent_device',sa.Integer),
+
         sa.Column('size',sa.Integer),
         sa.Column('mtime',sa.Float),
         sa.Column('ctime',sa.Float),
-        sa.Column('parent_inode',sa.Integer,sa.ForeignKey('paths.inode'),index=True),
         sa.Column('uid', sa.Integer),
         sa.Column('gid', sa.Integer),
         sa.Column('mode', sa.Integer),
-        sa.Column('device', sa.Integer),
         sa.Column('last_seen',sa.Float),
         sa.Column('mdss_state',sa.String),
-        sa.Column('links',sa.String),
-        sa.UniqueConstraint('inode','parent_inode','name',name='uniq_inode_edge'),
+        sa.Column('links',sa.Integer),
         )
 
-paths_parent_id = sa.Table('paths_parent_id', metadata,
-        sa.Column('id', sa.Integer, sa.ForeignKey('paths.id'), primary_key=True),
-        sa.Column('parent_id', sa.Integer, sa.ForeignKey('paths.id'))
+basenames = sa.Table('basenames', metadata,
+        sa.Column('id',sa.Integer,primary_key=True),
+        sa.Column('name',sa.Text),
         )
 
+paths = sa.Table('paths', metadata,
+        sa.Column('id',sa.Integer,primary_key=True),
+        sa.Column('parent_id',sa.Integer, sa.ForeignKey('paths.id')),
+        sa.Column('basename_id',sa.Integer, sa.ForeignKey('basenames.id')),
+
+        sa.Column('inode',sa.Integer),
+        sa.Column('device', sa.Integer),
+
+        sa.Column('parent_inode',sa.Integer),
+        sa.Column('parent_device',sa.Integer),
+
+        sa.Column('size',sa.Integer),
+        sa.Column('mtime',sa.Float),
+        sa.Column('ctime',sa.Float),
+        sa.Column('uid', sa.Integer),
+        sa.Column('gid', sa.Integer),
+        sa.Column('mode', sa.Integer),
+        sa.Column('last_seen',sa.Float),
+        sa.Column('links',sa.Integer),
+        )
 
 #: Virtual table describing the tree structure
 paths_closure = sa.Table('paths_closure', metadata,

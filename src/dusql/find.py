@@ -69,13 +69,13 @@ def find_roots():
         .select_from(
             model.paths_fullpath
             .join(
-                model.paths_parent_id,
-                model.paths_parent_id.c.id == model.paths_fullpath.c.path_id,
+                model.paths,
+                model.paths.c.id == model.paths_fullpath.c.path_id,
                 isouter=True,
                 )
             )
         .where(
-            model.paths_parent_id.c.parent_id == None
+            model.paths.c.parent_id == None
             )
         )
     return q
@@ -95,7 +95,7 @@ def to_ncdu(findq, connection):
             model.paths.c.id,
             model.paths.c.size.label('asize'),
             model.paths.c.inode.label('ino'),
-            model.paths.c.name,
+            model.basenames.c.name,
             model.paths.c.mode,
             model.paths.c.uid,
             model.paths.c.gid,
@@ -103,7 +103,10 @@ def to_ncdu(findq, connection):
             ])
             .select_from(model.paths
                 .join(model.paths_parents,
-                    model.paths_parents.c.parent_id == model.paths.c.id))
+                    model.paths_parents.c.parent_id == model.paths.c.id)
+                .join(model.basenames,
+                    model.paths.c.basename_id == model.basenames.c.id)
+                )
             .where(model.paths_parents.c.path_id.in_(findq))
             .distinct()
         )
@@ -121,11 +124,11 @@ def to_ncdu(findq, connection):
     # Get the tree edges
     q = (sa.select([
             paths_parents.c.parent_id.label('id'),
-            model.paths_parent_id.c.parent_id,
+            model.paths.c.parent_id,
             ])
             .select_from(paths_parents
-                .join(model.paths_parent_id,
-                    paths_parents.c.parent_id == model.paths_parent_id.c.id,
+                .join(model.paths,
+                    paths_parents.c.parent_id == model.paths.c.id,
                     isouter=True,
                 ))
             .where(paths_parents.c.path_id.in_(findq))
@@ -172,8 +175,10 @@ def find(path, connection, older_than=None, user=None, group=None, exclude=None,
     if exclude is not None:
         excl_q = (sa.select([model.paths_parents.c.path_id])
                 .select_from(model.paths_parents
-                    .join(model.paths, model.paths.c.id == model.paths_parents.c.parent_id))
-                .where(model.paths.c.name.in_(exclude)))
+                    .join(model.paths, model.paths.c.id == model.paths_parents.c.parent_id)
+                    .join(model.basenames, model.basenames.c.id == model.paths.c.basename_id)
+                    )
+                .where(model.basenames.c.name.in_(exclude)))
         q = q.where(~model.paths.c.id.in_(excl_q))
 
     if size is not None:
