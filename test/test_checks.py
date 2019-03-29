@@ -41,7 +41,7 @@ def test_directory_group_readable(conn, tmp_path):
 def test_netcdf_compression(conn, tmp_path):
     a = tmp_path/'a.nc'
     a.write_text('test')
-    
+
     scan(tmp_path, conn)
     root_id = get_path_id(tmp_path, conn)
 

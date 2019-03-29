@@ -35,7 +35,7 @@ def chunk(iterable, size):
 
 
 def _ingest_postprocess(connection):
-    with connection.begin() as trans:
+    with connection.begin():
 
         # Setup basenames
         connection.execute("""
