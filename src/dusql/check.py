@@ -22,6 +22,7 @@ from . import model
 import sqlalchemy as sa
 import stat
 import grp
+import pwd
 
 
 class Check:
@@ -80,31 +81,50 @@ class Check:
         return self.query(root_ids, connection)
 
 
-class Group(Check):
+class OwnedBy(Check):
     """
     Check all directories under root_ids are owned by a specific group
     """
-    name = 'group'
+    name = 'owned-by'
 
-    def __init__(self, group):
-        if isinstance(group, int):
-            self.group = group
+    def __init__(self, user=None, group=None):
+        if user is None and group is None:
+            raise Exception("Please supply user and/or group")
+
+        if user is None:
+            self.uid = None
+        elif isinstance(user, int):
+            self.uid = user
         else:
-            self.group = grp.getgrnam(group).gr_gid
+            self.uid = pwd.getpwnam(user).pw_uid
+
+        if group is None:
+            self.gid = None
+        elif isinstance(group, int):
+            self.gid = group
+        else:
+            self.gid = grp.getgrnam(group).gr_gid
 
     @classmethod
     def init_parser(klass, subparser):
         p = super().init_parser(subparser)
-        p.add_argument('--group', required=True)
+        p.add_argument('--user')
+        p.add_argument('--group')
         return p
 
     @classmethod
     def cli_init(klass, args):
-        return klass(group=args.group)
+        return klass(user=args.user, group=args.group)
 
     def query(self, root_ids, connection=None):
-        return (find_children(root_ids)
-                .where(~(model.paths.c.gid == self.group)))
+        q = find_children(root_ids)
+        if self.uid is not None:
+            q = q.where(~(model.paths.c.uid == self.uid))
+
+        if self.gid is not None:
+            q = q.where(~(model.paths.c.gid == self.gid))
+
+        return q
 
 
 
