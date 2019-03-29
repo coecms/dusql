@@ -25,7 +25,59 @@ import grp
 
 
 class Check:
-    pass
+    """
+    Base method for all checks
+
+    The CLI searches subclasses of this class to find available checks to run
+
+    Subclasses should have a ``name`` attribute with the name of the check used
+    by the CLI
+    """
+
+    @classmethod
+    def init_parser(klass, subparser):
+        """
+        Helper method for the CLI to set up arguments
+
+        Subclasses can add arguments like::
+
+            class Group(Check):
+                @classmethod
+                def init_parser(klass, subparser):
+                    p = super().init_parser(subparser)
+                    p.add_argument('--group', required=True)
+                    return p
+        """
+        p = subparser.add_parser(klass.name)
+        p.add_argument('path')
+        p.set_defaults(check = klass.cli_call)
+        return p
+
+    @classmethod
+    def cli_init(klass, args):
+        """
+        Helper method for the CLI to initialise the class from the arguments
+        set up by ``init_parser()``.
+
+        Subclasses should implement like::
+
+            class Group(Check):
+                @classmethod
+                def cli_init(klass, args):
+                    return klass(group=args.group)
+        """
+        return klass()
+
+    @classmethod
+    def cli_call(klass, root_ids, args, connection):
+        """
+        Helper method for the CLI to run the check
+
+        Overriding this shouldn't be neccessary - instead implement
+        ``cli_init()``.
+        """
+        self = klass.cli_init(args)
+        return self.query(root_ids, connection)
 
 
 class Group(Check):
@@ -39,6 +91,16 @@ class Group(Check):
             self.group = group
         else:
             self.group = grp.getgrnam(group).gr_gid
+
+    @classmethod
+    def init_parser(klass, subparser):
+        p = super().init_parser(subparser)
+        p.add_argument('--group', required=True)
+        return p
+
+    @classmethod
+    def cli_init(klass, args):
+        return klass(group=args.group)
 
     def query(self, root_ids, connection=None):
         return (find_children(root_ids)
