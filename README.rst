@@ -7,8 +7,8 @@ dusql - SQL Based Disk Usage Analyser
 .. image:: https://img.shields.io/codacy/grade/427f425167b34f1a88c0d352e2709e52.svg
     :target: https://www.codacy.com/app/ScottWales/dusql
     :alt: Code Style
-.. image:: https://img.shields.io/codacy/coverage/427f425167b34f1a88c0d352e2709e52/master.svg
-    :target: https://www.codacy.com/app/ScottWales/dusql
+.. image:: https://img.shields.io/codecov/c/github/coecms/dusql/master.svg
+    :target: https://codecov.io/gh/coecms/dusql
     :alt: Code Coverage
 .. image:: https://img.shields.io/conda/v/coecms/dusql.svg
     :target: https://anaconda.org/coecms/dusql
@@ -40,6 +40,10 @@ Print a summary of disk usage scanned into the database::
 Find files under ``$DIR``::
 
     $ dusql find --older_than 1y --group w35 $DIR
+
+Run a check on a path::
+
+    $ dusql check directory-group-readable $DIR
 
 Configuration
 -------------

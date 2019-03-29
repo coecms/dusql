@@ -22,6 +22,41 @@ import sqlalchemy as sa
 
 from conftest import count_files
 
+def test_scan_empty(conn, tmp_path):
+    a = tmp_path / 'a'
+    a.mkdir()
+    scan(a, conn)
+
+    q = sa.select([sa.func.count()]).select_from(model.paths)
+    r = conn.execute(q).scalar()
+    assert r == 1
+
+    q = sa.select([model.paths])
+    r = list(conn.execute(q))
+    assert r[0].parent_id == None
+    assert r[0].last_seen != None
+    assert r[0].parent_inode != None
+    assert r[0].parent_device != None
+
+def test_scan_inheritance(conn, tmp_path):
+    a = tmp_path / 'a'
+    a.mkdir()
+    scan(a, conn)
+
+    b = a / 'b'
+    b.mkdir()
+    scan(a, conn)
+
+    q = sa.select([sa.func.count()]).select_from(model.paths)
+    r = conn.execute(q).scalar()
+    assert r == 2
+
+    q = sa.select([model.paths]).order_by(model.paths.c.id)
+    r = list(conn.execute(q))
+    assert r[1].parent_inode == r[0].inode
+    assert r[1].parent_device == r[0].device
+    assert r[1].parent_id == r[0].id
+    assert r[1].last_seen != None
 
 def test_scan_sample(conn, sample_db, sample_data):
     # Check the scanned sample data
@@ -31,7 +66,7 @@ def test_scan_sample(conn, sample_db, sample_data):
     # Note the root path is not included in the scan
     assert len(list(r)) == count_files(sample_data)
 
-    q = sa.select([model.paths.c.name, model.paths.c.last_seen])
+    q = sa.select([model.paths.c.last_seen])
     for r in conn.execute(q):
         assert r.last_seen is not None
 

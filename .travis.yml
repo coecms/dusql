@@ -5,9 +5,10 @@ before_install:
         - ~/miniconda/bin/conda config --system --add channels conda-forge
         - ~/miniconda/bin/conda config --system --add channels coecms
 install:
-        - ~/miniconda/bin/conda install --yes conda-build conda-verify codacy-coverage
+        - ~/miniconda/bin/conda install --yes conda-build conda-verify codacy-coverage codecov
 script:
         - ~/miniconda/bin/conda build .
 after_success:
         - cat coverage.xml
         - ~/miniconda/bin/python-codacy-coverage -r coverage.xml
+        - ~/miniconda/bin/codecov

@@ -28,6 +28,6 @@ def test_summarise(conn, sample_db, sample_data):
     config = {}
     t, r = summarise_tag(conn, 'b', config)
 
-    assert r['size'] is None
+    assert r['size'] == 0
     assert r['inodes'] == 0
     assert r['last seen'] is None

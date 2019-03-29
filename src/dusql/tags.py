@@ -32,7 +32,7 @@ def summarise_tag(conn, tag, config):
     q = find_children(path_ids)
     q = q.with_only_columns([
             safunc.count().label('inodes'),
-            safunc.sum(model.paths.c.size).label('size'),
+            safunc.coalesce(safunc.sum(model.paths.c.size), 0).label('size'),
             safunc.min(model.paths.c.last_seen).label('last seen'),
         ])
 

@@ -23,9 +23,10 @@ import json
 import tempfile
 import sys
 import subprocess
-from . import db
+from . import db, model
 from .config import get_config
 from .scan import autoscan
+import sqlalchemy as sa
 
 
 def parse_size(size):
@@ -46,6 +47,35 @@ def parse_size(size):
         raise Exception(f"Could not interpret '{size}' as a size")
 
     return float(m.group('size')) * multiplier[m.group('unit')]
+
+
+class Check:
+    """
+    Run a single check on a path
+    """
+    def init_parser(self, parser):
+        from .check import Check
+        subp = parser.add_subparsers(help='Check command')
+        for s in Check.__subclasses__():
+            s.init_parser(subp)
+
+    def call(self, args, config):
+        from .handler import get_path_id
+
+        conn = db.connect(config['database'])
+        root_id = get_path_id(args.path, conn=conn)
+
+        q = args.check(args=args, root_ids=[root_id], connection=conn)
+
+        q = (sa.select([model.paths_fullpath.c.path])
+                .select_from(
+                    q
+                    .join(model.paths_fullpath, q.c.id == model.paths_fullpath.c.path_id)
+                    )
+                )
+
+        for r in conn.execute(q):
+            print(r.path)
 
 
 class Scan:
@@ -129,6 +159,7 @@ commands = {
     "scan": Scan(),
     "report": Report(),
     "find": Find(),
+    "check": Check(),
     "print-config": PrintConfig(),
     }
 

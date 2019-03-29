@@ -34,6 +34,81 @@ def chunk(iterable, size):
         yield itertools.chain([first], itertools.islice(iterator, size-1))
 
 
+def _ingest_postprocess(connection):
+    with connection.begin():
+
+        # Setup basenames
+        connection.execute("""
+            INSERT OR IGNORE INTO basenames(name)
+            SELECT name FROM paths_ingest
+        """)
+
+        # Upsert the new info
+        connection.execute("""
+            INSERT INTO paths (
+                basename_id,
+                inode,
+                device,
+                parent_inode,
+                parent_device,
+                size,
+                mtime,
+                ctime,
+                uid,
+                gid,
+                mode,
+                links,
+                last_seen
+            )
+            SELECT
+                basenames.id,
+                paths_ingest.inode,
+                paths_ingest.device,
+                paths_ingest.parent_inode,
+                paths_ingest.parent_device,
+                paths_ingest.size,
+                paths_ingest.mtime,
+                paths_ingest.ctime,
+                paths_ingest.uid,
+                paths_ingest.gid,
+                paths_ingest.mode,
+                paths_ingest.links,
+                paths_ingest.last_seen
+            FROM paths_ingest
+            JOIN basenames ON paths_ingest.name == basenames.name
+            WHERE true
+            ON CONFLICT (
+                basename_id,
+                inode,
+                device,
+                parent_inode,
+                parent_device
+            )
+            DO UPDATE SET
+                size = excluded.size,
+                mtime = excluded.mtime,
+                ctime = excluded.ctime,
+                uid = excluded.uid,
+                gid = excluded.gid,
+                mode = excluded.mode,
+                links = excluded.links,
+                last_seen = excluded.last_seen
+        """)
+
+        # Update parent_id
+        connection.execute("""
+            UPDATE paths
+            SET parent_id = (
+                SELECT id
+                FROM paths as parent
+                WHERE
+                    parent.inode == paths.parent_inode AND
+                    parent.device == paths.parent_device
+            ) WHERE parent_id IS NULL
+        """)
+
+
+
 def scan(url, connection):
     """
     Recursively scan all paths under ``path``, adding their metadata to the
@@ -52,38 +127,19 @@ def scan(url, connection):
                 .with_only_columns([sa.func.count()])
                 ).scalar()
 
+    connection.execute(model.paths_ingest.delete())
 
     with tqdm.tqdm(total=expected, desc="Directories Scanned") as pbar:
-        s = scanner(url, progress=None, scan_time=scan_time)
+        s = scanner(url, scan_time=scan_time)
 
         for records in chunk(s, 5000):
             rs = list(records)
-            stmt = (
-                Insert(model.paths)
-                .values(rs)
-                .on_conflict_do_update(
-                    values={
-                        'size': 'excluded.size',
-                        'mtime': 'excluded.mtime',
-                        'ctime': 'excluded.ctime',
-                        'uid': 'excluded.uid',
-                        'gid': 'excluded.gid',
-                        'mode': 'excluded.mode',
-                        'device': 'excluded.device',
-                        'last_seen': 'excluded.last_seen',
-                        'mdss_state': 'excluded.mdss_state',
-                        'links': 'excluded.links',
-                        },
-                    index_elements = [
-                        model.paths.c.inode,
-                        model.paths.c.parent_inode,
-                        model.paths.c.name,
-                        ]
-                    )
-                )
+            stmt = Insert(model.paths_ingest).values(rs)
 
             connection.execute(stmt)
             pbar.update(len(rs))
+
+    _ingest_postprocess(connection)
 
     # Set the root path to the normalised url
     i = get_path_id(url, connection)

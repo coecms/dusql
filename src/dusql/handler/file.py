@@ -36,18 +36,20 @@ def get_path_id(url, conn):
 def _single_file(path, scan_time):
     name = os.path.basename(path)
     parent_inode = os.stat(os.path.join(path, '..')).st_ino
+    parent_device = os.stat(os.path.join(path, '..')).st_dev
     stat = os.stat(path)
-    return _single_file_record(name, parent_inode, stat, scan_time)
+    return _single_file_record(name, parent_inode, parent_device, stat, scan_time)
 
 
-def _single_file_record(name, parent_inode, stat, scan_time):
-    return {'name': name, 'parent_inode': parent_inode, 'inode': stat.st_ino,
+def _single_file_record(name, parent_inode, parent_device, stat, scan_time):
+    return {'name': name, 'parent_inode': parent_inode,
+            'parent_device': parent_device, 'inode': stat.st_ino,
             'size': stat.st_size, 'mtime': stat.st_mtime, 'uid': stat.st_uid,
             'gid': stat.st_gid, 'mode': stat.st_mode, 'device': stat.st_dev,
             'ctime': stat.st_ctime, 'last_seen': scan_time}
 
 
-def _walk_generator(path, parent_inode=None, progress=None, scan_time=None):
+def _walk_generator(path, parent_inode=None, parent_device=None, scan_time=None):
     """
     Descend a directory, constructing a list of metadata for each file found
     """
@@ -56,16 +58,13 @@ def _walk_generator(path, parent_inode=None, progress=None, scan_time=None):
         parent_record = _single_file(path, scan_time)
         yield parent_record
         parent_inode = parent_record['inode']
+        parent_device = parent_record['device']
 
     for inode in os.scandir(path):
         # Loop over each file in the directory, adding it to the results list
         stat = inode.stat(follow_symlinks=False)
 
-        yield _single_file_record(inode.name, parent_inode, stat, scan_time)
-
-        # Update progress bar
-        if progress is not None:
-            progress.update(1)
+        yield _single_file_record(inode.name, parent_inode, parent_device, stat, scan_time)
 
         # Recurse into directories
         if inode.is_dir(follow_symlinks=False):
@@ -73,7 +72,7 @@ def _walk_generator(path, parent_inode=None, progress=None, scan_time=None):
                 yield from _walk_generator(
                         inode.path,
                         parent_inode=stat.st_ino,
-                        progress=progress,
+                        parent_device=stat.st_dev,
                         scan_time=scan_time)
             except FileNotFoundError:
                 pass
@@ -81,8 +80,8 @@ def _walk_generator(path, parent_inode=None, progress=None, scan_time=None):
                 pass
 
 
-def scanner(url, progress=None, scan_time=None):
+def scanner(url, scan_time=None):
     if isinstance(url, str):
         url = urlparse(url)
 
-    yield from _walk_generator(url.path, progress=progress, scan_time=scan_time)
+    yield from _walk_generator(url.path, scan_time=scan_time)
