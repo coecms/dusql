@@ -89,14 +89,14 @@ def test_owned_by_cli():
     assert c is not None
 
 
-@pytest.mark.xfail
-def test_netcdf_compression(conn, tmp_path):
-    a = tmp_path/'a.nc'
-    a.write_text('test')
-
-    scan(tmp_path, conn)
-    root_id = get_path_id(tmp_path, conn)
-
-    c = NetCDFCompression(min_size=0)
-    r = c.query([root_id], conn)
-    assert len(list(conn.execute(r))) == 1
+#@pytest.mark.xfail
+#def test_netcdf_compression(conn, tmp_path):
+#    a = tmp_path/'a.nc'
+#    a.write_text('test')
+#
+#    scan(tmp_path, conn)
+#    root_id = get_path_id(tmp_path, conn)
+#
+#    c = NetCDFCompression(min_size=0)
+#    r = c.query([root_id], conn)
+#    assert len(list(conn.execute(r))) == 1
