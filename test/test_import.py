@@ -16,5 +16,6 @@
 from __future__ import print_function
 import dusql
 
+
 def test_import():
     assert dusql.__version__ is not None

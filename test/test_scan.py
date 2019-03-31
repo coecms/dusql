@@ -22,6 +22,7 @@ import sqlalchemy as sa
 
 from conftest import count_files
 
+
 def test_scan_empty(conn, tmp_path):
     a = tmp_path / 'a'
     a.mkdir()
@@ -37,6 +38,7 @@ def test_scan_empty(conn, tmp_path):
     assert r[0].last_seen != None
     assert r[0].parent_inode != None
     assert r[0].parent_device != None
+
 
 def test_scan_inheritance(conn, tmp_path):
     a = tmp_path / 'a'
@@ -57,6 +59,7 @@ def test_scan_inheritance(conn, tmp_path):
     assert r[1].parent_device == r[0].device
     assert r[1].parent_id == r[0].id
     assert r[1].last_seen != None
+
 
 def test_scan_sample(conn, sample_db, sample_data):
     # Check the scanned sample data
@@ -96,11 +99,11 @@ def test_scan_root(conn, sample_db, sample_data):
         model.paths_fullpath.c.path,
         model.paths.c.parent_inode,
         model.paths.c.inode,
-        ])
-            .select_from(
-                model.paths_fullpath
-                .join(model.paths, model.paths.c.id == model.paths_fullpath.c.path_id))
-            .where(model.paths.c.inode == sample_data.stat().st_ino))
+    ])
+        .select_from(
+        model.paths_fullpath
+        .join(model.paths, model.paths.c.id == model.paths_fullpath.c.path_id))
+        .where(model.paths.c.inode == sample_data.stat().st_ino))
 
     r = list(conn.execute(q))
 
@@ -110,18 +113,19 @@ def test_scan_root(conn, sample_db, sample_data):
     # Parent of 'a' should be the root path
     root_inode = r[0].inode
     q = (sa.select([
-            model.paths.c.parent_inode,
-            ])
-            .where(model.paths.c.inode == (sample_data / 'a').stat().st_ino))
+        model.paths.c.parent_inode,
+    ])
+        .where(model.paths.c.inode == (sample_data / 'a').stat().st_ino))
     r = conn.execute(q).scalar()
     assert r == root_inode
+
 
 def test_delete(conn, tmp_path):
     a = tmp_path / 'a'
     b = a / 'b'
     c = a / 'c'
     d = a / 'd'
-    for p in [a,b,c,d]:
+    for p in [a, b, c, d]:
         p.mkdir()
     scan(tmp_path, conn)
     q = sa.select([sa.func.count()]).select_from(model.paths)
@@ -142,20 +146,23 @@ def test_delete(conn, tmp_path):
     r = conn.execute(q).scalar()
     assert r != count_files(tmp_path)
 
+
 def test_update(conn, tmp_path):
     a = tmp_path / 'a'
     b = a / 'b'
-    for p in [a,b]:
+    for p in [a, b]:
         p.mkdir()
     c = b / 'c'
     c.write_text('hello')
     scan(tmp_path, conn)
-    q = sa.select([model.paths.c.size]).where(model.paths.c.inode == c.stat().st_ino)
+    q = sa.select([model.paths.c.size]).where(
+        model.paths.c.inode == c.stat().st_ino)
     r = conn.execute(q).scalar()
     assert r == c.stat().st_size
 
     c.write_text(' world!')
     scan(tmp_path, conn)
-    q = sa.select([model.paths.c.size]).where(model.paths.c.inode == c.stat().st_ino)
+    q = sa.select([model.paths.c.size]).where(
+        model.paths.c.inode == c.stat().st_ino)
     r = conn.execute(q).scalar()
     assert r == c.stat().st_size

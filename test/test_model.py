@@ -38,8 +38,8 @@ def test_paths_count(conn, sample_db, sample_data):
 def test_paths_parents(conn, sample_db):
     # Each path should have only one parent
     q = (sa.select([paths_parents.c.path_id, sa.func.count().label('count')])
-            .where(paths_parents.c.depth == 0)
-            .group_by(paths_parents.c.path_id))
+         .where(paths_parents.c.depth == 0)
+         .group_by(paths_parents.c.path_id))
 
     for r in conn.execute(q):
         assert r.count == 1
@@ -55,4 +55,3 @@ def test_paths_fullpath(conn, sample_db, sample_data):
 
         for f in fs:
             assert os.path.join(p, f) in paths
-

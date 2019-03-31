@@ -24,7 +24,7 @@ import os
 @pytest.fixture
 def conn():
     return connect('sqlite:///:memory:', echo=False)
-    #return connect('sqlite:///test.sqlite', echo=True)
+    # return connect('sqlite:///test.sqlite', echo=True)
 
 
 @pytest.fixture(scope="session")
@@ -35,7 +35,7 @@ def sample_data(tmp_path_factory):
     c = a / 'c'
     d = c / 'd'
 
-    for p in [a,b,c,d]:
+    for p in [a, b, c, d]:
         p.mkdir()
 
     # Create a hard link
@@ -62,7 +62,7 @@ def count_files(path):
     count = 0
     for p, _, fs in os.walk(path):
         for f in fs:
-            print(os.path.join(p,f))
+            print(os.path.join(p, f))
         count += 1 + len(fs)
         print(p)
     return count
