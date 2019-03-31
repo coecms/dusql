@@ -20,6 +20,7 @@ from dusql.check import *
 from dusql.scan import scan
 from dusql.handler import get_path_id
 import pytest
+import argparse
 
 def test_directory_group_readable(conn, tmp_path):
     a = tmp_path / 'a'
@@ -37,6 +38,54 @@ def test_directory_group_readable(conn, tmp_path):
     scan(tmp_path, conn)
     r = DirectoryGroupReadable().query([root_id])
     assert len(list(conn.execute(r))) == 1
+
+
+def test_directory_group_readable_cli():
+    p = argparse.ArgumentParser()
+    s = p.add_subparsers()
+    DirectoryGroupReadable.init_parser(s)
+
+    args = p.parse_args('directory-group-readable A'.split())
+    c = DirectoryGroupReadable.cli_init(args)
+
+    assert c is not None
+
+
+def test_owned_by(conn, tmp_path):
+    a = tmp_path / 'a'
+    a.mkdir()
+
+    b = tmp_path / 'b'
+    b.mkdir()
+
+    scan(tmp_path, conn)
+
+    conn.execute("""
+        UPDATE paths SET uid = -1
+        WHERE id IN (
+            SELECT paths.id
+            FROM paths
+            JOIN basenames ON paths.basename_id = basenames.id
+            WHERE basenames.name = 'b'
+            )
+        """)
+
+    root_id = get_path_id(tmp_path, conn)
+    r = OwnedBy(user = -1).query([root_id])
+
+    # Two files not owned by -1 (root and 'a')
+    assert len(list(conn.execute(r))) == 2
+
+
+def test_owned_by_cli():
+    p = argparse.ArgumentParser()
+    s = p.add_subparsers()
+    OwnedBy.init_parser(s)
+
+    args = p.parse_args('owned-by A --user root --group root'.split())
+    c = OwnedBy.cli_init(args)
+
+    assert c is not None
 
 
 @pytest.mark.xfail
