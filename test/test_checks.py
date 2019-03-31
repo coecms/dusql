@@ -16,11 +16,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dusql.check import *
+from dusql.check import DirectoryGroupReadable, OwnedBy
 from dusql.scan import scan
 from dusql.handler import get_path_id
 import pytest
 import argparse
+
 
 def test_directory_group_readable(conn, tmp_path):
     a = tmp_path / 'a'
@@ -71,7 +72,7 @@ def test_owned_by(conn, tmp_path):
         """)
 
     root_id = get_path_id(tmp_path, conn)
-    r = OwnedBy(user = -1).query([root_id])
+    r = OwnedBy(user=-1).query([root_id])
 
     # Two files not owned by -1 (root and 'a')
     assert len(list(conn.execute(r))) == 2
@@ -96,7 +97,6 @@ def test_netcdf_compression(conn, tmp_path):
     scan(tmp_path, conn)
     root_id = get_path_id(tmp_path, conn)
 
-    c = NetCDFCompression(min_size = 0)
+    c = NetCDFCompression(min_size=0)
     r = c.query([root_id], conn)
     assert len(list(conn.execute(r))) == 1
-

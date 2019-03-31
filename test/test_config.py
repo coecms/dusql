@@ -15,13 +15,14 @@
 # limitations under the License.
 from __future__ import print_function
 
-from dusql.config import *
-from dusql.config import _construct_config
+from dusql.config import get_config, _construct_config
 import os
+
 
 def test_empty():
     c = _construct_config('')
     assert 'database' in c
+
 
 def test_tags():
     c = _construct_config("""
