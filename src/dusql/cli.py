@@ -40,7 +40,7 @@ def parse_size(size):
         'k': 1024,
         'M': 1048576,
         'G': 1073741824,
-        }
+    }
     m = re.fullmatch(r'(?P<size>[+-]?\d+(\.\d*)?)(?P<unit>[cwbkMG])', size)
 
     if m is None:
@@ -53,6 +53,7 @@ class Check:
     """
     Run a single check on a path
     """
+
     def init_parser(self, parser):
         from .check import Check
         subp = parser.add_subparsers(help='Check command')
@@ -68,11 +69,11 @@ class Check:
         q = args.check(args=args, root_ids=[root_id], connection=conn)
 
         q = (sa.select([model.paths_fullpath.c.path])
-                .select_from(
-                    q
-                    .join(model.paths_fullpath, q.c.id == model.paths_fullpath.c.path_id)
-                    )
-                )
+             .select_from(
+            q
+            .join(model.paths_fullpath, q.c.id == model.paths_fullpath.c.path_id)
+        )
+        )
 
         for r in conn.execute(q):
             print(r.path)
@@ -81,6 +82,7 @@ class Check:
 class Scan:
     """
     """
+
     def init_parser(self, parser):
         parser.add_argument('path')
 
@@ -93,6 +95,7 @@ class Scan:
 class Report:
     """
     """
+
     def init_parser(self, parser):
         pass
 
@@ -106,14 +109,22 @@ class Find:
     """
     Find the full path of files in the database
     """
+
     def init_parser(self, parser):
-        parser.add_argument('path',metavar='PATH',help="Path to search under")
-        parser.add_argument('--older_than','--older-than',metavar='AGE',type=pandas.to_timedelta,help="Minimum age (e.g. '1y', '30d')")
-        parser.add_argument('--user',help="Match only this user id",action='append')
-        parser.add_argument('--group',help="Match only this group id",action='append')
-        parser.add_argument('--exclude',help="Exclude files and directories matching this name",action='append')
-        parser.add_argument('--size',type=parse_size,help="Match files greater than this find-style size (e.g. '20G') (prefix with '-' for less than)")
-        parser.add_argument('--format',choices=['list','ncdu'],help="Output listing format")
+        parser.add_argument('path', metavar='PATH',
+                            help="Path to search under")
+        parser.add_argument('--older_than', '--older-than', metavar='AGE',
+                            type=pandas.to_timedelta, help="Minimum age (e.g. '1y', '30d')")
+        parser.add_argument(
+            '--user', help="Match only this user id", action='append')
+        parser.add_argument(
+            '--group', help="Match only this group id", action='append')
+        parser.add_argument(
+            '--exclude', help="Exclude files and directories matching this name", action='append')
+        parser.add_argument('--size', type=parse_size,
+                            help="Match files greater than this find-style size (e.g. '20G') (prefix with '-' for less than)")
+        parser.add_argument(
+            '--format', choices=['list', 'ncdu'], help="Output listing format")
 
     def call(self, args, config):
         from .find import find, to_ncdu
@@ -121,7 +132,8 @@ class Find:
 
         autoscan(args.path, conn)
 
-        q = find(args.path, conn, older_than=args.older_than, user=args.user, group=args.group, exclude=args.exclude, size=args.size)
+        q = find(args.path, conn, older_than=args.older_than, user=args.user,
+                 group=args.group, exclude=args.exclude, size=args.size)
 
         if args.format is None:
             # Set default output format
@@ -143,10 +155,12 @@ class Find:
                 c = ['ncdu', '-e', '-f', jsonf.name]
                 subprocess.run(c)
 
+
 class PrintConfig:
     """
     Print the current configuration
     """
+
     def init_parser(self, parser):
         pass
 
@@ -161,7 +175,7 @@ commands = {
     "find": Find(),
     "check": Check(),
     "print-config": PrintConfig(),
-    }
+}
 
 
 def main():
@@ -174,7 +188,7 @@ def main():
 
     for name, c in commands.items():
         p = subp.add_parser(name, description=c.__doc__)
-        p.set_defaults(func = c.call)
+        p.set_defaults(func=c.call)
         c.init_parser(p)
 
     args = parser.parse_args()

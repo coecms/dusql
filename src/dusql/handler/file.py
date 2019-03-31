@@ -28,8 +28,8 @@ def get_path_id(url, conn):
     s = os.stat(url.path)
 
     q = (sa.select([model.paths.c.id])
-            .where(model.paths.c.inode == s.st_ino)
-            .where(model.paths.c.device == s.st_dev))
+         .where(model.paths.c.inode == s.st_ino)
+         .where(model.paths.c.device == s.st_dev))
     return conn.execute(q).scalar()
 
 
@@ -70,10 +70,10 @@ def _walk_generator(path, parent_inode=None, parent_device=None, scan_time=None)
         if inode.is_dir(follow_symlinks=False):
             try:
                 yield from _walk_generator(
-                        inode.path,
-                        parent_inode=stat.st_ino,
-                        parent_device=stat.st_dev,
-                        scan_time=scan_time)
+                    inode.path,
+                    parent_inode=stat.st_ino,
+                    parent_device=stat.st_dev,
+                    scan_time=scan_time)
             except FileNotFoundError:
                 pass
             except PermissionError:

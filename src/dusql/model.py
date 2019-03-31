@@ -50,85 +50,94 @@ metadata = sa.MetaData()
 
 #: Inode information from scanning the filesystem
 paths_ingest = sa.Table('paths_ingest', metadata,
-        sa.Column('id',sa.Integer,primary_key=True),
-        sa.Column('name',sa.String),
-        sa.Column('inode',sa.Integer),
-        sa.Column('device', sa.Integer),
+                        sa.Column('id', sa.Integer, primary_key=True),
+                        sa.Column('name', sa.String),
+                        sa.Column('inode', sa.Integer),
+                        sa.Column('device', sa.Integer),
 
-        sa.Column('parent_inode',sa.Integer),
-        sa.Column('parent_device',sa.Integer),
+                        sa.Column('parent_inode', sa.Integer),
+                        sa.Column('parent_device', sa.Integer),
 
-        sa.Column('size',sa.Integer),
-        sa.Column('mtime',sa.Float),
-        sa.Column('ctime',sa.Float),
-        sa.Column('uid', sa.Integer),
-        sa.Column('gid', sa.Integer),
-        sa.Column('mode', sa.Integer),
-        sa.Column('last_seen',sa.Float),
-        sa.Column('mdss_state',sa.String),
-        sa.Column('links',sa.Integer),
-        )
+                        sa.Column('size', sa.Integer),
+                        sa.Column('mtime', sa.Float),
+                        sa.Column('ctime', sa.Float),
+                        sa.Column('uid', sa.Integer),
+                        sa.Column('gid', sa.Integer),
+                        sa.Column('mode', sa.Integer),
+                        sa.Column('last_seen', sa.Float),
+                        sa.Column('mdss_state', sa.String),
+                        sa.Column('links', sa.Integer),
+                        )
 
 basenames = sa.Table('basenames', metadata,
-        sa.Column('id',sa.Integer,primary_key=True),
-        sa.Column('name',sa.Text),
-        )
+                     sa.Column('id', sa.Integer, primary_key=True),
+                     sa.Column('name', sa.Text),
+                     )
 
 paths = sa.Table('paths', metadata,
-        sa.Column('id',sa.Integer,primary_key=True),
-        sa.Column('parent_id',sa.Integer, sa.ForeignKey('paths.id')),
-        sa.Column('basename_id',sa.Integer, sa.ForeignKey('basenames.id')),
+                 sa.Column('id', sa.Integer, primary_key=True),
+                 sa.Column('parent_id', sa.Integer, sa.ForeignKey('paths.id')),
+                 sa.Column('basename_id', sa.Integer,
+                           sa.ForeignKey('basenames.id')),
 
-        sa.Column('inode',sa.Integer),
-        sa.Column('device', sa.Integer),
+                 sa.Column('inode', sa.Integer),
+                 sa.Column('device', sa.Integer),
 
-        sa.Column('parent_inode',sa.Integer),
-        sa.Column('parent_device',sa.Integer),
+                 sa.Column('parent_inode', sa.Integer),
+                 sa.Column('parent_device', sa.Integer),
 
-        sa.Column('size',sa.Integer),
-        sa.Column('mtime',sa.Float),
-        sa.Column('ctime',sa.Float),
-        sa.Column('uid', sa.Integer),
-        sa.Column('gid', sa.Integer),
-        sa.Column('mode', sa.Integer),
-        sa.Column('last_seen',sa.Float),
-        sa.Column('links',sa.Integer),
-        )
+                 sa.Column('size', sa.Integer),
+                 sa.Column('mtime', sa.Float),
+                 sa.Column('ctime', sa.Float),
+                 sa.Column('uid', sa.Integer),
+                 sa.Column('gid', sa.Integer),
+                 sa.Column('mode', sa.Integer),
+                 sa.Column('last_seen', sa.Float),
+                 sa.Column('links', sa.Integer),
+                 )
 
 #: Virtual table describing the tree structure
 paths_closure = sa.Table('paths_closure', metadata,
-        sa.Column('root', sa.Integer, sa.ForeignKey('paths.id')),
-        sa.Column('id', sa.Integer, sa.ForeignKey('paths.id')),
-        sa.Column('depth', sa.Integer),
-        sa.Column('idcolumn', sa.Text),
-        sa.Column('parentcolumn', sa.Text),
-        )
+                         sa.Column('root', sa.Integer,
+                                   sa.ForeignKey('paths.id')),
+                         sa.Column('id', sa.Integer,
+                                   sa.ForeignKey('paths.id')),
+                         sa.Column('depth', sa.Integer),
+                         sa.Column('idcolumn', sa.Text),
+                         sa.Column('parentcolumn', sa.Text),
+                         )
 
 
 #: Descendents of a given inode
 paths_descendants = sa.Table('paths_descendants', metadata,
-        sa.Column('path_id', sa.Integer, sa.ForeignKey('paths.id')),
-        sa.Column('desc_id', sa.Integer, sa.ForeignKey('paths.id')),
-        sa.Column('depth', sa.Integer),
-        )
+                             sa.Column('path_id', sa.Integer,
+                                       sa.ForeignKey('paths.id')),
+                             sa.Column('desc_id', sa.Integer,
+                                       sa.ForeignKey('paths.id')),
+                             sa.Column('depth', sa.Integer),
+                             )
 
 
 #: Parents of a given inode
 paths_parents = sa.Table('paths_parents', metadata,
-        sa.Column('path_id', sa.Integer, sa.ForeignKey('paths.id')),
-        sa.Column('parent_id', sa.Integer, sa.ForeignKey('paths.id')),
-        sa.Column('depth', sa.Integer),
-        )
+                         sa.Column('path_id', sa.Integer,
+                                   sa.ForeignKey('paths.id')),
+                         sa.Column('parent_id', sa.Integer,
+                                   sa.ForeignKey('paths.id')),
+                         sa.Column('depth', sa.Integer),
+                         )
 
 
 #: Full paths to an inode
 paths_fullpath = sa.Table('paths_fullpath', metadata,
-        sa.Column('path_id', sa.Integer, sa.ForeignKey('paths.id')),
-        sa.Column('path', sa.Text),
-        )
+                          sa.Column('path_id', sa.Integer,
+                                    sa.ForeignKey('paths.id')),
+                          sa.Column('path', sa.Text),
+                          )
 
 #: Root directory of scans, for finding absolute paths
 root_paths = sa.Table('root_paths', metadata,
-        sa.Column('path_id', sa.Integer, sa.ForeignKey('paths.id')),
-        sa.Column('path', sa.Text),
-        )
+                      sa.Column('path_id', sa.Integer,
+                                sa.ForeignKey('paths.id')),
+                      sa.Column('path', sa.Text),
+                      )

@@ -24,13 +24,15 @@ import alembic
 
 default_url = 'sqlite:///dusql.sqlite'
 
-def connect(url = default_url, echo=False):
+
+def connect(url=default_url, echo=False):
     engine = sa.create_engine(url, echo=echo)
 
     # Load closure extension
     def load_closure(dbapi_conn, unused):
         dbapi_conn.enable_load_extension(True)
-        ext, _ = os.path.splitext(pkg_resources.resource_filename(__name__, 'closure.so'))
+        ext, _ = os.path.splitext(
+            pkg_resources.resource_filename(__name__, 'closure.so'))
         dbapi_conn.load_extension(ext)
         dbapi_conn.enable_load_extension(False)
     sa.event.listen(engine, 'connect', load_closure)
@@ -39,7 +41,7 @@ def connect(url = default_url, echo=False):
 
     # Apply migrations
     config = alembic.config.Config()
-    config.set_main_option('script_location','dusql:alembic')
+    config.set_main_option('script_location', 'dusql:alembic')
     config.attributes['connection'] = connection
     alembic.command.upgrade(config, 'head')
 

@@ -49,7 +49,7 @@ schema = {
         'database': {
             'type': 'string',
             'pattern': '^sqlite:///.*$'
-            },
+        },
         'tags': {
             'type': 'object',
             'additionalProperties': {
@@ -59,23 +59,23 @@ schema = {
                     'paths': {
                         'type': 'array',
                         'items': {'type': 'string'},
-                        },
+                    },
                     'checks': {
                         'type': 'object',
-                        }
-                    },
+                    }
                 },
             },
         },
+    },
     'required': [
         'database',
-        ],
-    }
+    ],
+}
 
 #: default configuration
 defaults = {
     'database': f'sqlite:///{tempfile.gettempdir()}/{os.environ["USER"]}.dusql.db',
-    }
+}
 
 
 def _construct_config(yaml_data):
@@ -102,12 +102,14 @@ def get_config(configfile=None):
     filename = 'dusql.yaml'
 
     if configfile is None:
-        configfile = os.path.join(os.environ.get('XDG_CONFIG_HOME', '/dev/null'), filename)
+        configfile = os.path.join(os.environ.get(
+            'XDG_CONFIG_HOME', '/dev/null'), filename)
         if not os.path.isfile(configfile):
             configfile = None
 
     if configfile is None:
-        configfile = os.path.join(os.environ.get('HOME', '/dev/null'), '.config', filename)
+        configfile = os.path.join(os.environ.get(
+            'HOME', '/dev/null'), '.config', filename)
         if not os.path.isfile(configfile):
             configfile = None
 

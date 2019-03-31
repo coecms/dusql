@@ -31,31 +31,34 @@ def upgrade():
     op.rename_table('paths', 'paths_ingest')
 
     op.create_table('basenames',
-            sa.Column('id', sa.Integer, primary_key=True),
-            sa.Column('name', sa.Text, unique=True, index=True),
-            )
+                    sa.Column('id', sa.Integer, primary_key=True),
+                    sa.Column('name', sa.Text, unique=True, index=True),
+                    )
 
     op.create_table('paths',
-            sa.Column('id',sa.Integer, primary_key=True, index=True),
-            sa.Column('parent_id',sa.Integer,sa.ForeignKey('paths.id'), index=True),
-            sa.Column('basename_id',sa.Integer,sa.ForeignKey('basenames.id')),
+                    sa.Column('id', sa.Integer, primary_key=True, index=True),
+                    sa.Column('parent_id', sa.Integer,
+                              sa.ForeignKey('paths.id'), index=True),
+                    sa.Column('basename_id', sa.Integer,
+                              sa.ForeignKey('basenames.id')),
 
-            sa.Column('inode',sa.Integer),
-            sa.Column('device', sa.Integer),
-            sa.Column('parent_inode',sa.Integer),
-            sa.Column('parent_device',sa.Integer),
+                    sa.Column('inode', sa.Integer),
+                    sa.Column('device', sa.Integer),
+                    sa.Column('parent_inode', sa.Integer),
+                    sa.Column('parent_device', sa.Integer),
 
-            sa.Column('size',sa.Integer),
-            sa.Column('mtime',sa.Float),
-            sa.Column('ctime',sa.Float),
-            sa.Column('uid', sa.Integer),
-            sa.Column('gid', sa.Integer),
-            sa.Column('mode', sa.Integer),
-            sa.Column('links', sa.Integer),
-            sa.Column('last_seen',sa.Float),
+                    sa.Column('size', sa.Integer),
+                    sa.Column('mtime', sa.Float),
+                    sa.Column('ctime', sa.Float),
+                    sa.Column('uid', sa.Integer),
+                    sa.Column('gid', sa.Integer),
+                    sa.Column('mode', sa.Integer),
+                    sa.Column('links', sa.Integer),
+                    sa.Column('last_seen', sa.Float),
 
-            sa.Index('idx_paths_inode', 'inode', 'device', 'parent_inode', 'parent_device', 'basename_id', unique=True),
-            )
+                    sa.Index('idx_paths_inode', 'inode', 'device', 'parent_inode',
+                             'parent_device', 'basename_id', unique=True),
+                    )
 
     op.execute("""
         CREATE VIRTUAL TABLE paths_closure

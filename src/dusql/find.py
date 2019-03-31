@@ -47,10 +47,10 @@ def find_children(root_ids):
             .join(
                 model.paths_closure,
                 model.paths.c.id == model.paths_closure.c.id)
-            )
+        )
         .where(model.paths_closure.c.root.in_(root_ids))
         .distinct()
-        )
+    )
     return q
 
 
@@ -65,20 +65,21 @@ def find_roots():
         sa.select([
             model.paths_fullpath.c.path_id.label('id'),
             model.paths_fullpath.c.path,
-            ])
+        ])
         .select_from(
             model.paths_fullpath
             .join(
                 model.paths,
                 model.paths.c.id == model.paths_fullpath.c.path_id,
                 isouter=True,
-                )
-            )
-        .where(
-            model.paths.c.parent_id == None
             )
         )
+        .where(
+            model.paths.c.parent_id == None
+        )
+    )
     return q
+
 
 def to_ncdu(findq, connection):
     """
@@ -92,24 +93,24 @@ def to_ncdu(findq, connection):
     # Get the metadata needed by ncdu
     # Found results, plus all of their parent paths
     q = (sa.select([
-            model.paths.c.id,
-            model.paths.c.size.label('asize'),
-            model.paths.c.inode.label('ino'),
-            model.basenames.c.name,
-            model.paths.c.mode,
-            model.paths.c.uid,
-            model.paths.c.gid,
-            sa.cast(model.paths.c.mtime, sa.Integer).label('mtime'),
-            ])
-            .select_from(model.paths
-                .join(model.paths_parents,
-                    model.paths_parents.c.parent_id == model.paths.c.id)
-                .join(model.basenames,
-                    model.paths.c.basename_id == model.basenames.c.id)
-                )
-            .where(model.paths_parents.c.path_id.in_(findq))
-            .distinct()
-        )
+        model.paths.c.id,
+        model.paths.c.size.label('asize'),
+        model.paths.c.inode.label('ino'),
+        model.basenames.c.name,
+        model.paths.c.mode,
+        model.paths.c.uid,
+        model.paths.c.gid,
+        sa.cast(model.paths.c.mtime, sa.Integer).label('mtime'),
+    ])
+        .select_from(model.paths
+                     .join(model.paths_parents,
+                           model.paths_parents.c.parent_id == model.paths.c.id)
+                     .join(model.basenames,
+                           model.paths.c.basename_id == model.basenames.c.id)
+                     )
+        .where(model.paths_parents.c.path_id.in_(findq))
+        .distinct()
+    )
 
     tree = {None: [{"name": "."}]}
     for r in connection.execute(q):
@@ -123,42 +124,43 @@ def to_ncdu(findq, connection):
 
     # Get the tree edges
     q = (sa.select([
-            paths_parents.c.parent_id.label('id'),
-            model.paths.c.parent_id,
-            ])
-            .select_from(paths_parents
-                .join(model.paths,
-                    paths_parents.c.parent_id == model.paths.c.id,
-                    isouter=True,
-                ))
-            .where(paths_parents.c.path_id.in_(findq))
-            .distinct()
-        )
+        paths_parents.c.parent_id.label('id'),
+        model.paths.c.parent_id,
+    ])
+        .select_from(paths_parents
+                     .join(model.paths,
+                           paths_parents.c.parent_id == model.paths.c.id,
+                           isouter=True,
+                           ))
+        .where(paths_parents.c.path_id.in_(findq))
+        .distinct()
+    )
 
     # Construct the tree relationships
     for r in connection.execute(q):
         tree[r.parent_id].append(tree[r.id])
 
     # Return the data ready to be converted to json
-    return [1,1,{"progname": "dusql","progver": __version__,
-        "timestamp": datetime.utcnow().timestamp()},tree[None]]
+    return [1, 1, {"progname": "dusql", "progver": __version__,
+                   "timestamp": datetime.utcnow().timestamp()}, tree[None]]
 
 
 def find(path, connection, older_than=None, user=None, group=None, exclude=None, size=None):
 
     j = (model.paths_fullpath
-        .join(model.paths, model.paths.c.id == model.paths_fullpath.c.path_id))
+         .join(model.paths, model.paths.c.id == model.paths_fullpath.c.path_id))
 
     q = (sa.sql.select([
-            model.paths_fullpath.c.path,
-        ])
+        model.paths_fullpath.c.path,
+    ])
         .select_from(j)
-        )
+    )
 
     if path is not None:
         path_id = get_path_id(path, connection)
 
-        j = j.join(model.paths_parents, model.paths.c.id == model.paths_parents.c.path_id)
+        j = j.join(model.paths_parents, model.paths.c.id ==
+                   model.paths_parents.c.path_id)
         q = q.select_from(j).where(model.paths_parents.c.parent_id == path_id)
 
     if older_than is not None:
@@ -167,18 +169,20 @@ def find(path, connection, older_than=None, user=None, group=None, exclude=None,
         q = q.where(model.paths.c.mtime < ts)
 
     if user is not None:
-        q = q.where(model.paths.c.uid.in_([pwd.getpwnam(u).pw_uid for u in user]))
+        q = q.where(model.paths.c.uid.in_(
+            [pwd.getpwnam(u).pw_uid for u in user]))
 
     if group is not None:
-        q = q.where(model.paths.c.gid.in_([grp.getgrnam(g).gr_gid for g in group]))
+        q = q.where(model.paths.c.gid.in_(
+            [grp.getgrnam(g).gr_gid for g in group]))
 
     if exclude is not None:
         excl_q = (sa.select([model.paths_parents.c.path_id])
-                .select_from(model.paths_parents
-                    .join(model.paths, model.paths.c.id == model.paths_parents.c.parent_id)
-                    .join(model.basenames, model.basenames.c.id == model.paths.c.basename_id)
-                    )
-                .where(model.basenames.c.name.in_(exclude)))
+                  .select_from(model.paths_parents
+                               .join(model.paths, model.paths.c.id == model.paths_parents.c.parent_id)
+                               .join(model.basenames, model.basenames.c.id == model.paths.c.basename_id)
+                               )
+                  .where(model.basenames.c.name.in_(exclude)))
         q = q.where(~model.paths.c.id.in_(excl_q))
 
     if size is not None:

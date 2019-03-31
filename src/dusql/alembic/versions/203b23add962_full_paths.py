@@ -18,9 +18,10 @@ depends_on = None
 
 def upgrade():
     op.create_table('root_paths',
-        sa.Column('path_id', sa.Integer, sa.ForeignKey('paths.id'), primary_key=True),
-        sa.Column('path', sa.Text),
-        )
+                    sa.Column('path_id', sa.Integer, sa.ForeignKey(
+                        'paths.id'), primary_key=True),
+                    sa.Column('path', sa.Text),
+                    )
 
     op.execute("""
         DROP VIEW paths_fullpath
