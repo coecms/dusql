@@ -19,7 +19,6 @@
 from .find import find_children
 from . import model
 
-import sqlalchemy as sa
 import stat
 import grp
 import pwd
