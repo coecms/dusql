@@ -1,1 +1,3 @@
 comment: off
+ignore:
+    - 'src/dusql/_version.py'

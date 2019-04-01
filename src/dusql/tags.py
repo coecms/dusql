@@ -31,10 +31,10 @@ def summarise_tag(conn, tag, config):
     path_ids = [get_path_id(p, conn) for p in config.get('paths', [])]
     q = find_children(path_ids)
     q = q.with_only_columns([
-            safunc.count().label('inodes'),
-            safunc.coalesce(safunc.sum(model.paths.c.size), 0).label('size'),
-            safunc.min(model.paths.c.last_seen).label('last seen'),
-        ])
+        safunc.count().label('inodes'),
+        safunc.coalesce(safunc.sum(model.paths.c.size), 0).label('size'),
+        safunc.min(model.paths.c.last_seen).label('last seen'),
+    ])
 
     r = conn.execute(q).first()
     r = dict(r)

@@ -18,6 +18,7 @@ from __future__ import print_function
 from sqlalchemy.sql import dml, schema
 from sqlalchemy.ext import compiler
 
+
 class Insert(dml.Insert):
     """
     Custom Sqlalchemy Insert class to handle SQLite upserts
@@ -39,31 +40,37 @@ class Insert(dml.Insert):
         self._post_values_clause = OnConflictReplace()
         return self
 
+
 class OnConflictDoNothing(schema.ClauseElement):
     def __init__(self, index_elements=None):
         self.index_elements = index_elements
+
 
 @compiler.compiles(OnConflictDoNothing)
 def compile_do_nothing(element, compiler, **kw):
     conflict_target = ''
 
     if element.index_elements is not None:
-        index_columns = [compiler.process(i, **kw) for i in element.index_elements]
+        index_columns = [compiler.process(i, **kw)
+                         for i in element.index_elements]
         conflict_target = f'({",".join(index_columns)})'
 
     return f'ON CONFLICT {conflict_target} DO NOTHING'
+
 
 class OnConflictDoUpdate(schema.ClauseElement):
     def __init__(self, values, index_elements=None):
         self.index_elements = index_elements
         self.upsert_values = values
 
+
 @compiler.compiles(OnConflictDoUpdate)
 def compile_do_update(element, compiler, **kw):
     conflict_target = ''
 
     if element.index_elements is not None:
-        index_columns = [compiler.process(i, **kw) for i in element.index_elements]
+        index_columns = [compiler.process(i, **kw)
+                         for i in element.index_elements]
         conflict_target = f'({",".join(index_columns)})'
 
     values = []
@@ -73,8 +80,10 @@ def compile_do_update(element, compiler, **kw):
 
     return f'ON CONFLICT {conflict_target} DO UPDATE SET {set_expr}'
 
+
 class OnConflictReplace(schema.ClauseElement):
     pass
+
 
 @compiler.compiles(OnConflictReplace)
 def compile_replace(element, compiler, **kw):

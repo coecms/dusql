@@ -17,6 +17,7 @@ from __future__ import print_function
 
 from dusql.cli import *
 
+
 def test_parse_size():
     assert parse_size('10k') == 10240
     assert parse_size('-10k') == -10240

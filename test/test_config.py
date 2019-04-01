@@ -15,11 +15,14 @@
 # limitations under the License.
 from __future__ import print_function
 
-from dusql.config import _construct_config
+from dusql.config import get_config, _construct_config
+import os
+
 
 def test_empty():
     c = _construct_config('')
     assert 'database' in c
+
 
 def test_tags():
     c = _construct_config("""
@@ -34,3 +37,17 @@ def test_tags():
 
     assert 'umdata' in c['tags']
     assert '/g/data/w35/um' in c['tags']['umdata']['paths']
+
+
+def test_read_config(tmpdir):
+    f = tmpdir / 'dusql.yaml'
+    f.write("""
+    database: sqlite:///test.db
+    """)
+
+    c = get_config(f)
+    assert c['database'] == 'sqlite:///test.db'
+
+    os.environ['XDG_CONFIG_HOME'] = str(tmpdir)
+    c = get_config()
+    assert c['database'] == 'sqlite:///test.db'

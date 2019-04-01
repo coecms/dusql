@@ -29,6 +29,7 @@ import os
 import sys
 from datetime import datetime
 
+
 def report_root_ids(connection, root_ids):
     rep = []
 
@@ -40,14 +41,14 @@ def report_root_ids(connection, root_ids):
             safunc.count().label('inodes'),
             safunc.coalesce(safunc.sum(model.paths.c.size), 0).label('size'),
             safunc.min(model.paths.c.last_seen).label('last seen'),
-            ])
+        ])
         .select_from(
             model.paths
             .join(subq, subq.c.id == model.paths.c.id)
-            )
+        )
         .group_by(model.paths.c.uid, model.paths.c.gid)
         .order_by(sa.desc('size'))
-        )
+    )
 
     for u in connection.execute(q):
         u = dict(u)
@@ -68,7 +69,8 @@ def report(connection, config):
     rep['tags'] = ((t, r) for t, r in summarise_tags(connection, config))
 
     root_ids = connection.execute(find_roots())
-    rep['total'] = ((r.path, report_root_ids(connection, [r.id])) for r in root_ids)
+    rep['total'] = ((r.path, report_root_ids(connection, [r.id]))
+                    for r in root_ids)
 
     return rep
 
@@ -79,14 +81,14 @@ def print_report(report, stream=sys.stdout):
     """
     print("Tags:", file=stream)
     for t, r in report['tags']:
-        print(f"{' '*4}%-8s {' '*13}% 8.1f gb % 8d"%(
+        print(f"{' '*4}%-8s {' '*13}% 8.1f gb % 8d" % (
             t, r['size'] / 1024**3, r['inodes']
-            ), file=stream)
+        ), file=stream)
 
     print("Scanned Paths:", file=stream)
     for p, rs in report['total']:
         print(f"{' '*4}{p}", file=stream)
         for r in rs:
-            print(f"{' '*8}%-8s %-8s % 8.1f gb % 8d"%(
+            print(f"{' '*8}%-8s %-8s % 8.1f gb % 8d" % (
                 r['user'], r['group'], r['size'] / 1024**3, r['inodes']
-                ), file=stream)
+            ), file=stream)

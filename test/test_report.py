@@ -17,13 +17,8 @@ from __future__ import print_function
 
 from dusql.report import report
 
-from dusql import model
-import sqlalchemy as sa
-
 def test_report(conn, sample_db, sample_data):
     r = report(conn, config={})
 
     assert r is not None
     assert str(sample_data) in (x for x, y in r['total'])
-
-

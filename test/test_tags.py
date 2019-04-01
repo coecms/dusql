@@ -16,6 +16,7 @@
 from __future__ import print_function
 from dusql.tags import *
 
+
 def test_summarise(conn, sample_db, sample_data):
     config = {'paths': [str(sample_data)]}
     t, r = summarise_tag(conn, 'a', config)

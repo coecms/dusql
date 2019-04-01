@@ -19,7 +19,6 @@
 from .find import find_children
 from . import model
 
-import sqlalchemy as sa
 import stat
 import grp
 import pwd
@@ -51,7 +50,7 @@ class Check:
         """
         p = subparser.add_parser(klass.name)
         p.add_argument('path')
-        p.set_defaults(check = klass.cli_call)
+        p.set_defaults(check=klass.cli_call)
         return p
 
     @classmethod
@@ -127,7 +126,6 @@ class OwnedBy(Check):
         return q
 
 
-
 class DirectoryGroupReadable(Check):
     """
     Check all directories under root_ids are group_readable
@@ -146,11 +144,11 @@ class DirectoryGroupReadable(Check):
 #     Check NetCDF files are compressed
 #     """
 #     name = 'netcdf-compression'
-# 
+#
 #     def __init__(self, min_size, filename_pattern='*.nc'):
 #         self.min_size = min_size
 #         self.filename_pattern = filename_pattern
-# 
+#
 #     def query(self, root_ids, connection):
 #         children = find_children(root_ids)
 #         netcdf_files = (children
@@ -163,20 +161,20 @@ class DirectoryGroupReadable(Check):
 #                 .where(model.basenames.c.name.op('GLOB')(self.filename_pattern))
 #                 .alias('netcdf_files')
 #                 )
-# 
+#
 #         netcdf_paths = (
 #                 sa.select([model.paths_fullpath.c.path_id, model.paths_fullpath.c.path])
 #                 .select_from(
 #                     model.paths_fullpath
 #                     .join(netcdf_files, netcdf_files.c.id == model.paths_fullpath.c.path_id))
 #                 )
-# 
+#
 #         found_ids = []
 #         for r in connection.execute(netcdf_paths):
 #             if self.check_file(r.path):
 #                 found_ids.append(r.path_id)
-# 
+#
 #         return sa.select([model.paths.c.id]).where(model.paths.c.id.in_(found_ids))
-# 
+#
 #     def check_file(self, path):
 #         return True

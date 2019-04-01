@@ -20,6 +20,7 @@ from dusql import model
 from conftest import count_files
 import os
 
+
 def to_relpath(path, base):
     return os.path.relpath(base / path, base / '..')
 
@@ -56,7 +57,8 @@ def test_exclude(conn, sample_data, sample_db):
     results = [r.path for r in conn.execute(q)]
     assert 'a/c' not in results
     assert 'a/c/d/e' not in results
-    assert len(results) == count_files(sample_data) - count_files(sample_data / 'a' / 'c')
+    assert len(results) == count_files(sample_data) - \
+        count_files(sample_data / 'a' / 'c')
 
 
 def test_ncdu(conn, sample_data, sample_db):

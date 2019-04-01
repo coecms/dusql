@@ -42,10 +42,10 @@ def urlparse(url):
         url = urllib.parse.urlparse(url)
 
     if url.scheme != '':
-        url = url._replace(path = os.path.relpath(url.path, '/'))
+        url = url._replace(path=os.path.relpath(url.path, '/'))
 
     if url.scheme in ['', 'file']:
-        url = url._replace(path = os.path.abspath(url.path))
+        url = url._replace(path=os.path.abspath(url.path))
 
     return url
 
@@ -66,4 +66,3 @@ def scanner(url, *args, **kwargs):
     """
     url = urlparse(url)
     yield from scheme_handler[url.scheme].scanner(url, *args, **kwargs)
-

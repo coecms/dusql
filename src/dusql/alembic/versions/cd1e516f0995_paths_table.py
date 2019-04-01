@@ -18,22 +18,23 @@ depends_on = None
 
 def upgrade():
     op.create_table('paths',
-        sa.Column('id',sa.Integer,primary_key=True),
-        sa.Column('name',sa.String),
-        sa.Column('inode',sa.Integer,index=True),
-        sa.Column('size',sa.Integer),
-        sa.Column('mtime',sa.Float),
-        sa.Column('ctime',sa.Float),
-        sa.Column('parent_inode',sa.Integer,index=True),
-        sa.Column('uid', sa.Integer),
-        sa.Column('gid', sa.Integer),
-        sa.Column('mode', sa.Integer),
-        sa.Column('device', sa.Integer),
-        sa.Column('last_seen',sa.Float),
-        sa.Column('mdss_state',sa.String),
-        sa.Column('links',sa.String),
-        sa.UniqueConstraint('inode','parent_inode','name',name='uniq_inode_edge'),
-        )
+                    sa.Column('id', sa.Integer, primary_key=True),
+                    sa.Column('name', sa.String),
+                    sa.Column('inode', sa.Integer, index=True),
+                    sa.Column('size', sa.Integer),
+                    sa.Column('mtime', sa.Float),
+                    sa.Column('ctime', sa.Float),
+                    sa.Column('parent_inode', sa.Integer, index=True),
+                    sa.Column('uid', sa.Integer),
+                    sa.Column('gid', sa.Integer),
+                    sa.Column('mode', sa.Integer),
+                    sa.Column('device', sa.Integer),
+                    sa.Column('last_seen', sa.Float),
+                    sa.Column('mdss_state', sa.String),
+                    sa.Column('links', sa.String),
+                    sa.UniqueConstraint('inode', 'parent_inode',
+                                        'name', name='uniq_inode_edge'),
+                    )
 
     op.execute("""
         CREATE VIEW paths_parent_id AS

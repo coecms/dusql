@@ -15,7 +15,7 @@
 # limitations under the License.
 from __future__ import print_function
 
-from dusql.model import *
+from dusql import model
 
 import sqlalchemy as sa
 from conftest import count_files
@@ -24,12 +24,12 @@ import os
 
 def test_paths_count(conn, sample_db, sample_data):
     # There should be a paths and paths_fullpath row for each file
-    q = sa.select([sa.func.count()]).select_from(paths)
+    q = sa.select([sa.func.count()]).select_from(model.paths)
     r = conn.execute(q).scalar()
 
     assert r == count_files(sample_data)
 
-    q = sa.select([sa.func.count()]).select_from(paths_fullpath)
+    q = sa.select([sa.func.count()]).select_from(model.paths_fullpath)
     r = conn.execute(q).scalar()
 
     assert r == count_files(sample_data)
@@ -37,9 +37,9 @@ def test_paths_count(conn, sample_db, sample_data):
 
 def test_paths_parents(conn, sample_db):
     # Each path should have only one parent
-    q = (sa.select([paths_parents.c.path_id, sa.func.count().label('count')])
-            .where(paths_parents.c.depth == 0)
-            .group_by(paths_parents.c.path_id))
+    q = (sa.select([model.paths_parents.c.path_id, sa.func.count().label('count')])
+         .where(model.paths_parents.c.depth == 0)
+         .group_by(model.paths_parents.c.path_id))
 
     for r in conn.execute(q):
         assert r.count == 1
@@ -47,7 +47,7 @@ def test_paths_parents(conn, sample_db):
 
 def test_paths_fullpath(conn, sample_db, sample_data):
     # Make sure paths are correct
-    q = sa.select([paths_fullpath.c.path])
+    q = sa.select([model.paths_fullpath.c.path])
     paths = [r.path for r in conn.execute(q)]
 
     for p, _, fs in os.walk(sample_data):
@@ -55,4 +55,3 @@ def test_paths_fullpath(conn, sample_db, sample_data):
 
         for f in fs:
             assert os.path.join(p, f) in paths
-

@@ -27,13 +27,14 @@ from .. import model
 parent_re = re.compile(r'(.*/)?(?P<name>.*):')
 count_re = re.compile(r'total (?P<count>\d+)')
 entry_re = re.compile(
-        r'(?P<inode>\d+)\s+(?P<mode>\S{10})\+?\s+(?P<links>\d+)\s+'
-        r'(?P<uid>\d+)\s+(?P<gid>\d+)\s+(?P<size>\d+)\s+'
-        r'(?P<date>\S{10})\s+(?P<time>\S{5})\s+\((?P<mdss_state>.{3})\)\s+'
-        r'(?P<name>.*)'
-        )
+    r'(?P<inode>\d+)\s+(?P<mode>\S{10})\+?\s+(?P<links>\d+)\s+'
+    r'(?P<uid>\d+)\s+(?P<gid>\d+)\s+(?P<size>\d+)\s+'
+    r'(?P<date>\S{10})\s+(?P<time>\S{5})\s+\((?P<mdss_state>.{3})\)\s+'
+    r'(?P<name>.*)'
+)
 
 MDSS_DEVICE = -1
+
 
 def get_path_id(url, conn):
     """
@@ -44,9 +45,9 @@ def get_path_id(url, conn):
 
     try:
         p = subprocess.run(
-                ['/opt/bin/mdss','-P',project,'dmls','-anid','--',path],
-                text=True,
-                capture_output=True)
+            ['/opt/bin/mdss', '-P', project, 'dmls', '-anid', '--', path],
+            text=True,
+            capture_output=True)
     except subprocess.CalledProcessError:
         return None
 
@@ -55,8 +56,8 @@ def get_path_id(url, conn):
         return None
 
     q = (sa.select([model.paths.c.id])
-            .where(model.paths.c.inode == int(m.group('inode')))
-            .where(model.paths.c.device == MDSS_DEVICE))
+         .where(model.paths.c.inode == int(m.group('inode')))
+         .where(model.paths.c.device == MDSS_DEVICE))
     return conn.execute(q).scalar()
 
 
@@ -73,14 +74,15 @@ def scanner(url, scan_time=None):
     if project == '':
         raise Exception('No MDSS project specified')
 
-    cmd = ['/opt/bin/mdss','-P',project,'dmls','-aniR','--',path]
+    cmd = ['/opt/bin/mdss', '-P', project, 'dmls', '-aniR', '--', path]
     with subprocess.Popen(cmd,
-            bufsize=1,
-            text=True,
-            stdout=subprocess.PIPE) as p:
+                          bufsize=1,
+                          text=True,
+                          stdout=subprocess.PIPE) as p:
         yield from parse_mdss(p.stdout, scan_time=scan_time)
     if p.returncode != 0:
-        logging.getLogger(__name__).warning(f'Command "{" ".join(p.args)}" failed with code {p.returncode}')
+        logging.getLogger(__name__).warning(
+            f'Command "{" ".join(p.args)}" failed with code {p.returncode}')
 
 
 def mode_to_octal(mode):
@@ -132,7 +134,6 @@ def mode_to_octal(mode):
     return omode
 
 
-
 def process_entry(entry):
     date = entry.pop('date')
     time = entry.pop('time')
@@ -143,7 +144,7 @@ def process_entry(entry):
     entry['mode'] = mode_to_octal(entry['mode'])
 
     # Convert to int
-    for k in ['uid','gid','size','inode']:
+    for k in ['uid', 'gid', 'size', 'inode']:
         entry[k] = int(entry[k])
 
     return entry
@@ -207,4 +208,3 @@ def parse_mdss(stream, scan_time=None):
 
         else:
             raise Exception('Error parsing MDSS state')
-

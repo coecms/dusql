@@ -108,7 +108,6 @@ def _ingest_postprocess(connection):
         """)
 
 
-
 def scan(url, connection):
     """
     Recursively scan all paths under ``path``, adding their metadata to the
@@ -123,9 +122,9 @@ def scan(url, connection):
     expected = None
     if i is not None:
         expected = connection.execute(
-                find_children([i])
-                .with_only_columns([sa.func.count()])
-                ).scalar()
+            find_children([i])
+            .with_only_columns([sa.func.count()])
+        ).scalar()
 
     connection.execute(model.paths_ingest.delete())
 
@@ -144,19 +143,18 @@ def scan(url, connection):
     # Set the root path to the normalised url
     i = get_path_id(url, connection)
     connection.execute(
-            Insert(model.root_paths)
-            .values({'path_id': i, 'path': urlunparse(urlparse(url))})
-            .on_conflict_do_nothing(index_elements=[model.root_paths.c.path_id])
-            )
+        Insert(model.root_paths)
+        .values({'path_id': i, 'path': urlunparse(urlparse(url))})
+        .on_conflict_do_nothing(index_elements=[model.root_paths.c.path_id])
+    )
 
     # Clean out deleted files
     connection.execute(
-            model.paths
-            .delete()
-            .where(model.paths.c.last_seen < scan_time)
-            .where(model.paths.c.id.in_(find_children([i])))
-            )
-
+        model.paths
+        .delete()
+        .where(model.paths.c.last_seen < scan_time)
+        .where(model.paths.c.id.in_(find_children([i])))
+    )
 
 
 def autoscan(url, connection):

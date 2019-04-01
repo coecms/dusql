@@ -1,0 +1,11 @@
+strictness: medium
+doc-warnings: true
+
+pep8:
+    full: true
+
+ignore-paths:
+    - versioneer.py
+
+pyroma:
+    run: true
