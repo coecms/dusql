@@ -19,7 +19,6 @@
 from dusql.check import DirectoryGroupReadable, OwnedBy
 from dusql.scan import scan
 from dusql.handler import get_path_id
-import pytest
 import argparse
 
 

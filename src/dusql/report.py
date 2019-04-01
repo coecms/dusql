@@ -17,15 +17,11 @@ from __future__ import print_function
 
 from . import model
 from .find import find_roots, find_children
-from .scan import autoscan
-from .handler import get_path_id
 from .tags import summarise_tags
 import sqlalchemy as sa
 import sqlalchemy.sql.functions as safunc
 import pwd
 import grp
-import pandas
-import os
 import sys
 from datetime import datetime
 

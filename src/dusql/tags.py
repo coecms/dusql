@@ -19,7 +19,6 @@ from .handler import get_path_id
 from .find import find_children
 from . import model
 
-import sqlalchemy as sa
 import sqlalchemy.sql.functions as safunc
 from datetime import datetime
 

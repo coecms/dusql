@@ -34,10 +34,10 @@ def test_scan_empty(conn, tmp_path):
 
     q = sa.select([model.paths])
     r = list(conn.execute(q))
-    assert r[0].parent_id == None
-    assert r[0].last_seen != None
-    assert r[0].parent_inode != None
-    assert r[0].parent_device != None
+    assert r[0].parent_id is None
+    assert r[0].last_seen is not None
+    assert r[0].parent_inode is not None
+    assert r[0].parent_device is not None
 
 
 def test_scan_inheritance(conn, tmp_path):
@@ -58,7 +58,7 @@ def test_scan_inheritance(conn, tmp_path):
     assert r[1].parent_inode == r[0].inode
     assert r[1].parent_device == r[0].device
     assert r[1].parent_id == r[0].id
-    assert r[1].last_seen != None
+    assert r[1].last_seen is not None
 
 
 def test_scan_sample(conn, sample_db, sample_data):
