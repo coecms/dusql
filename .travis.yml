@@ -8,11 +8,11 @@ install:
         - ~/miniconda/bin/conda install --yes conda-build conda-verify codacy-coverage codecov sphinx
 script:
         - ~/miniconda/bin/conda build .
+        - source ~/miniconda/bin/activate && make -C doc html
 after_success:
         - cat coverage.xml
         - ~/miniconda/bin/python-codacy-coverage -r coverage.xml
         - ~/miniconda/bin/codecov
-        - source ~/miniconda/bin/activate && make -C doc html
         - touch doc/build/html/.nojekyll
 deploy:
     provider: pages
