@@ -18,24 +18,22 @@
 SQL Model
 =========
 
-The model is based off of one main table, ``paths``, and a number of views for
+The model is based off of one main table, :obj:``paths``, and a number of views for
 ease of use.
 
-The ``paths`` table represents inodes on the file system, and consists of a
+The :obj:``paths`` table represents inodes on the file system, and consists of a
 number columns representing os.stat() values as well as the column
 ``parent_inode`` which is the inode of the directory containing this file.
 
-Due to hard links the value of ``inode`` is not globally unique.
+Due to hard links the value of ``inode`` is not globally unique, files are
+uniquly identified by the values of (``name``, ``parent_inode``, ``parent_device``).
 
-The ``paths_closure`` virtual table uses the sqlite closure extension to
-calculate the structure of the filesystem tree, based on the ``inode`` and
-``parent_inode`` columns of the ``paths`` table.
+The :obj:``paths_closure`` virtual table uses the sqlite closure extension to
+calculate the structure of the filesystem tree. The :obj:``paths_parents`` and
+:obj:``paths_descendants`` helper views contain the parents and descendants of
+each path.
 
-The ``paths_parents`` and ``paths_descendants`` views convert the ``inode``
-dependencies convert the inode-based information in ``paths_closure`` into row
-ids of the ``paths`` table.
-
-The ``paths_fullpath`` view contains the full path to a file
+The :obj:``paths_fullpath`` view contains the full path to a file
 
 To use the views within sqlite the closure extension must be loaded, e.g. with::
 
@@ -48,7 +46,6 @@ import sqlalchemy as sa
 
 metadata = sa.MetaData()
 
-#: Inode information from scanning the filesystem
 paths_ingest = sa.Table('paths_ingest', metadata,
                         sa.Column('id', sa.Integer, primary_key=True),
                         sa.Column('name', sa.String),
@@ -69,11 +66,24 @@ paths_ingest = sa.Table('paths_ingest', metadata,
                         sa.Column('links', sa.Integer),
                         )
 
+#: Deduplicated path name components
+#:
+#: - ``basenames.c.id`` (int): Primary key
+#: - ``basenames.c.name`` (str): Path basename
 basenames = sa.Table('basenames', metadata,
                      sa.Column('id', sa.Integer, primary_key=True),
                      sa.Column('name', sa.Text),
                      )
 
+#: Inode information from scanning the filesystem
+#:
+#: - ``paths.c.id`` (int): Primary key
+#: - ``paths.c.parent_id``: Link to :obj:`paths` containing the parent Inode of this Inode
+#: - ``paths.c.basename_id``: Link to :obj:`basenames` containing the basename of this path
+#: - ``paths.c.inode`` (int): Inode number of this path
+#: - ``paths.c.device`` (int): Device ID of the path
+#: - ``paths.c.last_seen`` (float): UNIX time the file was last scanned
+#: - ``size``, ``mtime``, ``ctime``, ``uid``, ``gid``, ``mode``, ``links``: Values from :func:`os.stat`
 paths = sa.Table('paths', metadata,
                  sa.Column('id', sa.Integer, primary_key=True),
                  sa.Column('parent_id', sa.Integer, sa.ForeignKey('paths.id')),
@@ -109,6 +119,10 @@ paths_closure = sa.Table('paths_closure', metadata,
 
 
 #: Descendents of a given inode
+#:
+#: - ``paths_descendants.c.path_id``: Link to :obj:`paths`
+#: - ``paths_descendants.c.desc_id``: Link to :obj:`paths` that is a child path of ``path_id``
+#: - ``paths_descendants.c.depth`` (int): Number of directory levels between ``path_id`` and ``desc_id``
 paths_descendants = sa.Table('paths_descendants', metadata,
                              sa.Column('path_id', sa.Integer,
                                        sa.ForeignKey('paths.id')),
@@ -119,6 +133,10 @@ paths_descendants = sa.Table('paths_descendants', metadata,
 
 
 #: Parents of a given inode
+#:
+#: - ``paths_descendants.c.path_id``: Link to :obj:`paths`
+#: - ``paths_descendants.c.parent_id``: Link to :obj:`paths` that is a parent path of ``path_id``
+#: - ``paths_descendants.c.depth`` (int): Number of directory levels between ``path_id`` and ``parent_id``
 paths_parents = sa.Table('paths_parents', metadata,
                          sa.Column('path_id', sa.Integer,
                                    sa.ForeignKey('paths.id')),
@@ -129,6 +147,9 @@ paths_parents = sa.Table('paths_parents', metadata,
 
 
 #: Full paths to an inode
+#:
+#: - ``paths_fullpath.c.path_id``: Link to :obj:`paths`
+#: - ``paths_fullpath.c.path`` (str): Full path to this inode
 paths_fullpath = sa.Table('paths_fullpath', metadata,
                           sa.Column('path_id', sa.Integer,
                                     sa.ForeignKey('paths.id')),

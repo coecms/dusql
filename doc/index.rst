@@ -10,6 +10,10 @@ Welcome to dusql's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   cli
+   api
+   db
+
 
 
 Indices and tables

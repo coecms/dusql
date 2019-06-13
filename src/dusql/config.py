@@ -42,7 +42,7 @@ import os
 import yaml
 import tempfile
 
-#: json schema of the configuration
+#: JSON schema of the configuration
 schema = {
     'type': 'object',
     'properties': {
@@ -72,7 +72,7 @@ schema = {
     ],
 }
 
-#: default configuration
+#: Default configuration
 defaults = {
     'database': f'sqlite:///{tempfile.gettempdir()}/{os.environ["USER"]}.dusql.db',
 }
@@ -97,7 +97,18 @@ def get_config(configfile=None):
     """
     Gets the configuration, either from a named file or from the default paths
 
-    Returns a dict with the configuration values
+    If ``configfile`` is not specified, the following paths will be searched in order:
+     - $XDG_CONFIG_HOME/dusql.yaml
+     - $HOME/.config/dusql.yaml
+     - ./dusql.yaml
+
+    Values not set in the config file will be defined from :obj:`defaults`
+
+    Args:
+        configfile: Path to a YAML configuration file
+
+    Returns:
+        A dict with the configuration values, matching schema :obj:`schema`
     """
     filename = 'dusql.yaml'
 

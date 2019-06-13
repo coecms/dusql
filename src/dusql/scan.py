@@ -114,6 +114,10 @@ def scan(url, connection):
     database
 
     ``path`` may be a local filesystem path or a URL like mdss://w35/saw562
+
+    Args:
+        url: Filesytem path/URL to scan
+        connection: Dusql database connection from :func:`~dusql.db.connect`
     """
     scan_time = datetime.utcnow().timestamp()
 
@@ -160,6 +164,8 @@ def scan(url, connection):
 def autoscan(url, connection):
     """
     Runs a scan iff path is not in the database
+
+    See :func:`scan` for arguments
     """
     if url is not None:
         i = get_path_id(url, connection)

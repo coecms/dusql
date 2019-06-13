@@ -26,6 +26,15 @@ default_url = 'sqlite:///dusql.sqlite'
 
 
 def connect(url=default_url, echo=False):
+    """
+    Connect to a Dusql database
+
+    Args:
+        url: SQLAlchemy compatible URL to the database
+        echo (bool): Echo SQL commands to stderr
+
+    Returns a database ``connection`` to be passed to other dusql functions
+    """
     engine = sa.create_engine(url, echo=echo)
 
     # Load closure extension

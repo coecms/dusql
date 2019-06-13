@@ -20,6 +20,7 @@ from .find import find_roots, find_children
 from .scan import autoscan
 from .handler import get_path_id
 from .tags import summarise_tags
+from .config import get_config
 import sqlalchemy as sa
 import sqlalchemy.sql.functions as safunc
 import pwd
@@ -63,7 +64,46 @@ def report_root_ids(connection, root_ids):
     return rep
 
 
-def report(connection, config):
+def report(connection, config=None):
+    """
+    Collect information for a filesystem report
+ 
+    Args:
+        connection: Database connection from :func:`dusql.db.connect`
+        config: Configuration information from :func:`dusql.config.get_config`
+
+    Returns:
+        A dict with usage information, following the pattern::
+            
+            { 'tags': {
+                  'TAG': {
+                    'size': 1024, # Size in bytes
+                    'inodes': 10, # Number of files
+                  },
+                  'TAG': {...},
+                },
+              'total': {
+                  'ROOT_PATH': {[
+                    {
+                      'user': 'abc123', # Username
+                      'group': 'a12', # Group name
+                      'size': 1024, # Size in bytes
+                      'inodes': 10, # Number of files
+                    },
+                    {...}
+                  ]},
+                  'ROOT_PATH': {...},
+                },
+            }
+
+        ``'tags'`` has a total for each tag defined by the ``config``, while
+        ``'total'`` has a size by user/group for each top-level path in the
+        database
+
+    """
+    if config is None:
+        config = get_config()
+
     rep = {'tags': {}, 'total': {}}
 
     rep['tags'] = ((t, r) for t, r in summarise_tags(connection, config))

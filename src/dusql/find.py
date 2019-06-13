@@ -129,7 +129,7 @@ def to_ncdu(findq, connection):
     ])
         .select_from(paths_parents
                      .join(model.paths,
-                           paths_parents.c.parent_id == model.paths.c.id,
+                            paths_parents.c.parent_id == model.paths.c.id,
                            isouter=True,
                            ))
         .where(paths_parents.c.path_id.in_(findq))
@@ -145,7 +145,25 @@ def to_ncdu(findq, connection):
                    "timestamp": datetime.utcnow().timestamp()}, tree[None]]
 
 
-def find(path, connection, older_than=None, user=None, group=None, exclude=None, size=None):
+def find(connection, path=None, older_than=None, user=None, group=None, exclude=None, size=None):
+    """
+    Find files in the database
+
+    Args:
+        connection: Database connection from :func:`~dusql.db.connect`
+        path: Parent path to search under
+        user (str): Find files owned by this user name
+        group (str): Find files owned by this group name
+        older_than (datetime.timedelta-like): Find files with modify time at
+            least this far away from the present
+        size (int): Find files larger than this size (in bytes)
+        exclude (list of str): Exclude paths containing these strings as components
+
+    Returns a :obj:`sqlalchemy.sql.select` of filesystem URLs matching the constraint
+
+    The select has access to tables :obj:`~dusql.model.paths_fullpath` and
+    :obj:`~dusql.model.paths` for further querying
+    """
 
     j = (model.paths_fullpath
          .join(model.paths, model.paths.c.id == model.paths_fullpath.c.path_id))
