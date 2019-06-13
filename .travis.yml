@@ -13,6 +13,7 @@ after_success:
         - ~/miniconda/bin/python-codacy-coverage -r coverage.xml
         - ~/miniconda/bin/codecov
         - source ~/miniconda/bin/activate && make -C doc html
+        - touch doc/build/html/.nojekyll
 deploy:
     provider: pages
     skip_cleanup: true
