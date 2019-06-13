@@ -5,10 +5,19 @@ before_install:
         - ~/miniconda/bin/conda config --system --add channels conda-forge
         - ~/miniconda/bin/conda config --system --add channels coecms
 install:
-        - ~/miniconda/bin/conda install --yes conda-build conda-verify codacy-coverage codecov
+        - ~/miniconda/bin/conda install --yes conda-build conda-verify codacy-coverage codecov sphinx
 script:
         - ~/miniconda/bin/conda build .
 after_success:
         - cat coverage.xml
         - ~/miniconda/bin/python-codacy-coverage -r coverage.xml
         - ~/miniconda/bin/codecov
+        - source ~/miniconda/bin/activate && make -C doc html
+deploy:
+    provider: pages
+    skip_cleanup: true
+    github_token: $GITHUB_TOKEN
+    keep_history: true
+    local_dir: doc/build/html
+    on:
+        branch: doc
