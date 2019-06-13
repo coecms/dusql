@@ -132,7 +132,7 @@ class Find:
 
         autoscan(args.path, conn)
 
-        q = find(args.path, conn, older_than=args.older_than, user=args.user,
+        q = find(conn, path=args.path, older_than=args.older_than, user=args.user,
                  group=args.group, exclude=args.exclude, size=args.size)
 
         if args.format is None:
