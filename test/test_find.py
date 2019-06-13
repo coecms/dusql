@@ -53,7 +53,7 @@ def test_find_subtree(conn, sample_data, sample_db):
 
 def test_exclude(conn, sample_data, sample_db):
     # Find all files except those under 'a/c'
-    q = find(sample_data, conn, exclude='c')
+    q = find(conn, path=sample_data, exclude='c')
     results = [r.path for r in conn.execute(q)]
     assert 'a/c' not in results
     assert 'a/c/d/e' not in results
@@ -62,7 +62,7 @@ def test_exclude(conn, sample_data, sample_db):
 
 
 def test_ncdu(conn, sample_data, sample_db):
-    q = find(sample_data/'a', conn)
+    q = find(conn, path=sample_data/'a')
     ncdu = to_ncdu(q, conn)
     print(ncdu)
 
