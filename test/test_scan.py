@@ -19,6 +19,7 @@ from dusql.scan import scan
 
 from dusql import model
 import sqlalchemy as sa
+import os
 
 from conftest import count_files
 
@@ -166,3 +167,13 @@ def test_update(conn, tmp_path):
         model.paths.c.inode == c.stat().st_ino)
     r = conn.execute(q).scalar()
     assert r == c.stat().st_size
+
+def test_non_utf(conn, tmp_path):
+    a = str(tmp_path / '\ud83d').encode('utf-8', 'surrogatepass')
+    os.mkdir(a)
+
+    scan(tmp_path, conn)
+
+    q = sa.select([sa.func.count()]).select_from(model.paths)
+    r = conn.execute(q).scalar()
+    assert r == count_files(tmp_path)
