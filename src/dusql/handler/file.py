@@ -64,7 +64,7 @@ def _walk_generator(path, parent_inode=None, parent_device=None, scan_time=None)
         # Loop over each file in the directory, adding it to the results list
         stat = inode.stat(follow_symlinks=False)
 
-        yield _single_file_record(inode.name, parent_inode, parent_device, stat, scan_time)
+        yield _single_file_record(inode.name.encode('utf-8', 'replace').decode('utf-8'), parent_inode, parent_device, stat, scan_time)
 
         # Recurse into directories
         if inode.is_dir(follow_symlinks=False):
