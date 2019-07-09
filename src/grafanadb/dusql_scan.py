@@ -49,6 +49,8 @@ def scan(path, scan_time, parent_device, parent_inode):
                     stat = entry.stat(follow_symlinks=False)
                 except PermissionError:
                     stat = unreadable_stat
+                except FileNotFoundError:
+                    continue
 
                 if entry.is_dir(follow_symlinks=False):
                     yield from scan(entry.path, scan_time, stat.st_dev, stat.st_ino)
@@ -67,11 +69,16 @@ def scan(path, scan_time, parent_device, parent_inode):
                 scan_time = scan_time,
                 basename = os.path.basename(path),
                 stat = unreadable_stat)
+    except FileNotFoundError:
+        return
 
 def scan_root(root_path, csvwriter):
     broot_path = root_path.encode('utf-8')
 
-    stat = os.stat(root_path)
+    try:
+        stat = os.stat(root_path)
+    except FileNotFoundError:
+        return
 
     csvwriter.writerow(scan_entry(parent_device = None, parent_inode = None, scan_time = None, basename = broot_path, stat = stat))
 

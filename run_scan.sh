@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -q normal
 #PBS -l ncpus=2
-#PBS -l walltime=1:00:00
+#PBS -l walltime=4:00:00
 #PBS -l mem=2gb
 #PBS -l jobfs=20gb
 #PBS -l wd
@@ -14,8 +14,7 @@ module load conda
 
 #set -x
 
-PROJECTS="w35 w40 v45 w42 w48 w97 hh5"
-PROJECTS="hh5/tmp"
+PROJECTS="hh5 v45 w35 w40 w42 w48 w97"
 
 sed -e 's:\<\(\S\+\):/g/data/\1 /short/\1:g' -e 's:\s\+:\n:g' <<< $PROJECTS | parallel -v --jobs 4 python src/grafanadb/dusql_scan.py {} --output $TMPDIR/'dusql.{= $_=~ s:/:_:g =}.csv'
 
