@@ -29,14 +29,13 @@ def connect(url='postgresql://localhost:9876/grafana'):
         with connect() as conn:
             conn.execute(q)
     """
+    global engine
     if engine is None:
-        engine = sa.create_engine(url)
+        engine = sa.create_engine(url, echo=True)
 
     conn = engine.connect()
 
     yield conn
 
     conn.close()
-
-
 

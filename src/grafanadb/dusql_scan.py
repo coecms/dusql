@@ -67,7 +67,7 @@ def scan(path, scan_time, parent_device, parent_inode):
                 parent_device = parent_device,
                 parent_inode = parent_inode,
                 scan_time = scan_time,
-                basename = os.path.basename(path),
+                basename = b'',
                 stat = unreadable_stat)
     except FileNotFoundError:
         return

@@ -16,16 +16,54 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import model as m
+from grafanadb import model as m
 
 import sqlalchemy as sa
-import stat
+import pwd
 
-def unreadable_dirs_query():
+def unreadable_query():
     """
-    Returns (uid, path) for each directory that is not group readable
+    Returns (uid, path) for each path that cannot be 'stat'ed or directory opened
     """
-    q = (sa.select([m.inode.uid, m.dusql_path_func(m.inode.id).alias('path')])
-            .where((m.inode.mode & stat.S_IFDIR) != 0) 
-            .where((m.inode.mode & (stat.S_IRGRP | stat.s_IXGRP)) != 0) 
-            .order_by(m.inode.uid))
+    pinode = m.inode.alias('parent_inode')
+
+    q = (sa.select([pinode])
+            .select_from(
+                pinode
+                .join(m.parent, m.parent.c.parent_id == pinode.c.id)
+                .join(m.inode, m.parent.c.id == m.inode.c.id)
+            )
+            .where(m.inode.c.mode == None)
+            .where(sa.not_( m.dusql_path_func(m.inode.c.id).like('%/tmp/%')))
+            .alias('unreadable')
+            )
+
+    return q
+
+def unreadable_report(conn):
+    # Count by user
+    uq = unreadable_query()
+
+    q1 = sa.select([uq.c.uid, sa.func.count().label('count')]).group_by(uq.c.uid)
+
+    for user in conn.execute(q1):
+        if user is None:
+            continue
+
+        p = pwd.getpwuid(user.uid)
+        username = p.pw_name
+        fullname = p.pw_gecos
+
+        print(f'{fullname} ({username}): {user.count}')
+
+        with open(f'/g/data/w35/saw562/dusql/users/{username}.txt', 'w') as f:
+            q2 = sa.select([m.dusql_path_func(uq.c.id).label('path')]).where(uq.c.uid == user.uid)
+            for path in conn.execute(q2):
+                f.write(path.path + '\n')
+
+
+if __name__ == '__main__':
+    from grafanadb import db
+
+    with db.connect() as conn:
+        unreadable_report(conn)

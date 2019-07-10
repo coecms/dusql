@@ -13,6 +13,10 @@ CREATE TABLE IF NOT EXISTS dusql_inode (
 	scan_time FLOAT
 );
 
+CREATE INDEX IF NOT EXISTS dusql_inode_mode ON dusql_inode (mode);
+CREATE INDEX IF NOT EXISTS dusql_inode_inode ON dusql_inode (device, inode);
+CREATE INDEX IF NOT EXISTS dusql_inode_parent ON dusql_inode (parent_device, parent_inode);
+
 CREATE OR REPLACE VIEW dusql_parent AS
 	SELECT
 		dusql_inode.id AS id,

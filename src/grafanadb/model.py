@@ -38,8 +38,8 @@ inode = sa.Table('dusql_inode', metadata,
 
 # Link an inode to its parent
 parent = sa.Table('dusql_parent', metadata,
-                  sa.Column('id', sa.Integer, ForeignKey('dusql_inode.id'), primary_key=True),
-                  sa.Column('parent_id', sa.Integer, ForeignKey('dusql_inode.id')),
+                  sa.Column('id', sa.Integer, sa.ForeignKey('dusql_inode.id'), primary_key=True),
+                  sa.Column('parent_id', sa.Integer, sa.ForeignKey('dusql_inode.id')),
                   )
 
 # Pass a inode id to dusql_path_func inside a query to get the full path to that inode
