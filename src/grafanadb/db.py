@@ -31,7 +31,7 @@ def connect(url='postgresql://localhost:9876/grafana'):
     """
     global engine
     if engine is None:
-        engine = sa.create_engine(url, echo=True)
+        engine = sa.create_engine(url)
 
     conn = engine.connect()
 

@@ -20,6 +20,29 @@ from grafanadb import model as m
 
 import sqlalchemy as sa
 import pwd
+import pandas
+from email.message import EmailMessage
+from email.generator import Generator
+from jinja2 import Template
+
+email_template = """
+Hi {{fullname}},
+
+You've got {{count}} {{'directories' if count > 1 else 'directory'}} using CLEX storage at NCI that we can't see.
+
+You can fix this by running:
+{% if count < 5 -%}
+{%- for path in paths %}
+    chmod -R g+rX {{path}}
+{%- endfor -%}
+{%- else %}
+    xargs chmod -R g+rX < /g/data/w35/saw562/dusql/users/{{username}}.txt
+
+(check the paths listed in the files first)
+{%- endif %}
+
+Sincerely, CLEX CMS
+"""
 
 def unreadable_query():
     """
@@ -27,16 +50,16 @@ def unreadable_query():
     """
     pinode = m.inode.alias('parent_inode')
 
-    q = (sa.select([pinode])
+    q = (sa.select([pinode.c.uid, pinode.c.gid, m.dusql_path_func(pinode.c.id).label('path')])
             .select_from(
                 pinode
-                .join(m.parent, m.parent.c.parent_id == pinode.c.id)
-                .join(m.inode, m.parent.c.id == m.inode.c.id)
-            )
+                .join(m.parent, pinode.c.id == m.parent.c.parent_id)
+                .join(m.inode, m.inode.c.id == m.parent.c.id)
+                )
             .where(m.inode.c.mode == None)
-            .where(sa.not_( m.dusql_path_func(m.inode.c.id).like('%/tmp/%')))
-            .alias('unreadable')
-            )
+            ).alias('unreadable')
+
+    q = sa.select([q]).where(sa.not_(q.c.path.like('%/tmp/%')))
 
     return q
 
@@ -44,22 +67,33 @@ def unreadable_report(conn):
     # Count by user
     uq = unreadable_query()
 
-    q1 = sa.select([uq.c.uid, sa.func.count().label('count')]).group_by(uq.c.uid)
+    df = pandas.read_sql_query(uq, conn)
 
-    for user in conn.execute(q1):
-        if user is None:
-            continue
+    j_template = Template(email_template)
 
-        p = pwd.getpwuid(user.uid)
+    df = df[df.uid.isin([11364, 6826])]
+
+    for uid, group in df.groupby('uid'):
+
+        p = pwd.getpwuid(uid)
         username = p.pw_name
         fullname = p.pw_gecos
 
-        print(f'{fullname} ({username}): {user.count}')
+        paths = group['path']
+
+        email = EmailMessage()
+        email.set_content(j_template.render(username = p.pw_name, fullname = p.pw_gecos, count = paths.size, paths = paths))
+
+        email['Subject'] = f'CLEX files at NCI for {username}'
+        email['To'] = f'{fullname} <{username}@nci.org.au>'
+        email['From'] = 'CLEX CMS <cws_help@nci.org.au>'
+
+        print(str(email))
+
 
         with open(f'/g/data/w35/saw562/dusql/users/{username}.txt', 'w') as f:
-            q2 = sa.select([m.dusql_path_func(uq.c.id).label('path')]).where(uq.c.uid == user.uid)
-            for path in conn.execute(q2):
-                f.write(path.path + '\n')
+            for path in paths:
+                f.write(path + '\n')
 
 
 if __name__ == '__main__':
