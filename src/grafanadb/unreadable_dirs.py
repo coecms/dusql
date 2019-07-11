@@ -28,20 +28,29 @@ from jinja2 import Template
 email_template = """
 Hi {{fullname}},
 
-You've got {{count}} {{'directories' if count > 1 else 'directory'}} using CLEX storage at NCI that we can't see.
+You've got {{count}} {{'directories' if count > 1 else 'directory'}} using CLEX storage at NCI that CMS can't see.
 
-You can fix this by running:
 {% if count < 5 -%}
+Please review the paths listed below to ensure no data with access restrictions is included in those paths. 
+
+If no such data exists, please fix your permissions as soon as possible by running:
 {%- for path in paths %}
     chmod -R g+rX {{path}}
 {%- endfor -%}
 {%- else %}
-    xargs chmod -R g+rX < /g/data/w35/saw562/dusql/users/{{username}}.txt
+Please review the paths listed in /g/data/w35/saw562/dusql/users/{{username}}.txt to ensure no data with access restrictions is included in those paths. 
 
-(check the paths listed in the files first)
+If no such data exists, please fix your permissions as soon as possible by running:
+
+    xargs chmod -R g+rX < /g/data/w35/saw562/dusql/users/{{username}}.txt
 {%- endif %}
+If you have data you can not open to the whole group, please contact the CMS team (cws_help@nci.org.au) with the details of which paths need to keep access restrictions and why.
+
+Tip: remember to check this wiki page [1] to find ways to create files with group permissions directly.
 
 Sincerely, CLEX CMS
+
+[1] http://climate-cms.wikis.unsw.edu.au/Tips:_Custom_file_permissions_at_creation
 """
 
 def unreadable_query():
@@ -71,7 +80,7 @@ def unreadable_report(conn):
 
     j_template = Template(email_template)
 
-    df = df[df.uid.isin([11364, 6826])]
+    df = df[df.uid.isin([11364, 6826,5424,603, 2014])]
 
     messages = []
 
