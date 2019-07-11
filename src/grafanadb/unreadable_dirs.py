@@ -21,8 +21,8 @@ from grafanadb import model as m
 import sqlalchemy as sa
 import pwd
 import pandas
-from email.message import EmailMessage
-from email.generator import Generator
+import sys
+import json
 from jinja2 import Template
 
 email_template = """
@@ -73,6 +73,8 @@ def unreadable_report(conn):
 
     df = df[df.uid.isin([11364, 6826])]
 
+    messages = []
+
     for uid, group in df.groupby('uid'):
 
         p = pwd.getpwuid(uid)
@@ -81,19 +83,17 @@ def unreadable_report(conn):
 
         paths = group['path']
 
-        email = EmailMessage()
-        email.set_content(j_template.render(username = p.pw_name, fullname = p.pw_gecos, count = paths.size, paths = paths))
-
-        email['Subject'] = f'CLEX files at NCI for {username}'
-        email['To'] = f'{fullname} <{username}@nci.org.au>'
-        email['From'] = 'CLEX CMS <cws_help@nci.org.au>'
-
-        print(str(email))
-
+        messages.append({
+            'to': f'{fullname} <{username}@nci.org.au>',
+            'subject': f'CLEX storage for {username}',
+            'message': j_template.render(username = p.pw_name, fullname = p.pw_gecos, count = paths.size, paths = paths)
+            })
 
         with open(f'/g/data/w35/saw562/dusql/users/{username}.txt', 'w') as f:
             for path in paths:
                 f.write(path + '\n')
+
+    json.dump(messages, sys.stdout, indent=4)
 
 
 if __name__ == '__main__':
