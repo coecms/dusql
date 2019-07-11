@@ -34,16 +34,17 @@ You've got {{count}} {{'directories' if count > 1 else 'directory'}} using CLEX 
 Please review the paths listed below to ensure no data with access restrictions is included in those paths. 
 
 If no such data exists, please fix your permissions as soon as possible by running:
-{%- for path in paths %}
+{% for path in paths %}
     chmod -R g+rX {{path}}
 {%- endfor -%}
-{%- else %}
+{%- else -%}
 Please review the paths listed in /g/data/w35/saw562/dusql/users/{{username}}.txt to ensure no data with access restrictions is included in those paths. 
 
 If no such data exists, please fix your permissions as soon as possible by running:
 
     xargs chmod -R g+rX < /g/data/w35/saw562/dusql/users/{{username}}.txt
 {%- endif %}
+
 If you have data you can not open to the whole group, please contact the CMS team (cws_help@nci.org.au) with the details of which paths need to keep access restrictions and why.
 
 Tip: remember to check this wiki page [1] to find ways to create files with group permissions directly.
@@ -97,6 +98,7 @@ def unreadable_report(conn):
             'subject': f'CLEX storage for {username}',
             'message': j_template.render(username = p.pw_name, fullname = p.pw_gecos, count = paths.size, paths = paths)
             })
+        print(messages[-1]['message'])
 
         with open(f'/g/data/w35/saw562/dusql/users/{username}.txt', 'w') as f:
             for path in paths:
