@@ -44,3 +44,6 @@ parent = sa.Table('dusql_parent', metadata,
 
 # Pass a inode id to dusql_path_func inside a query to get the full path to that inode
 dusql_path_func = sa.func.dusql_path_func
+
+# Pass a inode id to dusql_project_func inside a query to get the root project gid
+dusql_project_func = sa.func.dusql_project_func

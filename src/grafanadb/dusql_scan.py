@@ -24,10 +24,8 @@ import argparse
 import sys
 import types
 
-def scan_entry(parent_device, parent_inode, scan_time, basename, stat):
+def scan_entry(parent_device, parent_inode, scan_time, basename, stat, ipath):
     return (
-        parent_inode,
-        parent_device,
         stat.st_ino,
         stat.st_dev,
         stat.st_mode,
@@ -37,38 +35,48 @@ def scan_entry(parent_device, parent_inode, scan_time, basename, stat):
         stat.st_mtime,
         scan_time,
         basename.decode('utf-8', 'backslashreplace'),
+        ipath[0],
+        ipath[-1],
         )
 
 unreadable_stat = types.SimpleNamespace(st_ino=None, st_dev=None, st_mode=None, st_uid=None, st_gid=None, st_size=None, st_mtime=None)
 
-def scan(path, scan_time, parent_device, parent_inode):
+def scan(path, scan_time, parent_device, parent_inode, ipath):
+
     try:
         with os.scandir(path) as it:
             for entry in it:
+                inode = entry.inode()
+                entry_ipath = ipath + [inode]
+
                 try:
                     stat = entry.stat(follow_symlinks=False)
+
+                    if entry.is_dir(follow_symlinks=False) and parent_device == stat.st_dev:
+                        yield from scan(entry.path, scan_time, stat.st_dev, stat.st_ino, entry_ipath)
+
                 except PermissionError:
                     stat = unreadable_stat
                 except FileNotFoundError:
                     continue
-
-                if entry.is_dir(follow_symlinks=False):
-                    yield from scan(entry.path, scan_time, stat.st_dev, stat.st_ino)
 
                 yield scan_entry(
                         parent_device = parent_device,
                         parent_inode = parent_inode,
                         scan_time = scan_time,
                         basename = entry.name,
-                        stat = stat)
+                        stat = stat,
+                        ipath = entry_ipath)
 
     except PermissionError:
-        yield scan_entry(
-                parent_device = parent_device,
-                parent_inode = parent_inode,
-                scan_time = scan_time,
-                basename = b'',
-                stat = unreadable_stat)
+        return
+        #yield scan_entry(
+        #        parent_device = parent_device,
+        #        parent_inode = parent_inode,
+        #        scan_time = scan_time,
+        #        basename = b'',
+        #        stat = unreadable_stat,
+        #        ipath = ipath)
     except FileNotFoundError:
         return
 
@@ -80,15 +88,19 @@ def scan_root(root_path, csvwriter):
     except FileNotFoundError:
         return
 
-    csvwriter.writerow(scan_entry(parent_device = None, parent_inode = None, scan_time = None, basename = broot_path, stat = stat))
+    scan_time = time.time()
+    ipath = [stat.st_ino]
+
+    csvwriter.writerow(scan_entry(parent_device = None, parent_inode = None, scan_time = scan_time, basename = broot_path, stat = stat, ipath=ipath))
 
     csvwriter.writerows(
             tqdm.tqdm(
                 scan(
                     broot_path,
-                    scan_time = time.time(),
+                    scan_time = scan_time,
                     parent_device = stat.st_dev,
-                    parent_inode = stat.st_ino
+                    parent_inode = stat.st_ino,
+                    ipath = ipath,
                     ),
                 desc = root_path,
                 disable = None,

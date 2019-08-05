@@ -15,6 +15,7 @@ module load conda
 #set -x
 
 PROJECTS="hh5 v45 w35 w40 w42 w48 w97"
+#PROJECTS="w40"
 
 sed -e 's:\<\(\S\+\):/g/data/\1 /short/\1:g' -e 's:\s\+:\n:g' <<< $PROJECTS | parallel -v --jobs 4 python src/grafanadb/dusql_scan.py {} --output $TMPDIR/'dusql.{= $_=~ s:/:_:g =}.csv'
 
@@ -23,14 +24,23 @@ cp $TMPDIR/dusql.*.csv /g/data/w35/saw562/dusql
 cat > $TMPDIR/dusql_update_head <<EOF
 BEGIN;
 
-DELETE FROM dusql_inode;
+DROP TABLE IF EXISTS dusql_inode CASCADE;
 
-DROP INDEX IF EXISTS dusql_inode_parent;
-DROP INDEX IF EXISTS dusql_inode_inode;
+CREATE UNLOGGED TABLE dusql_inode (
+        basename TEXT NOT NULL,
+        inode BIGINT,
+        device BIGINT,
+        mode INTEGER,
+        uid INTEGER,
+        gid INTEGER,
+        size BIGINT,
+        mtime FLOAT,
+        scan_time FLOAT,
+        root_inode BIGINT,
+        parent_inode BIGINT
+);
 
 COPY dusql_inode(
-    parent_inode,
-    parent_device,
     inode,
     device,
     mode,
@@ -39,15 +49,15 @@ COPY dusql_inode(
     size,
     mtime,
     scan_time,
-    basename
+    basename,
+    root_inode,
+    parent_inode
 ) FROM STDIN WITH (FORMAT CSV);
 EOF
 
 cat > $TMPDIR/dusql_update_tail <<EOF
 \.
 
-CREATE INDEX dusql_inode_parent ON dusql_inode(parent_device, parent_inode, basename);
-CREATE INDEX dusql_inode_inode ON dusql_inode(device, inode);
 COMMIT;
 EOF
 

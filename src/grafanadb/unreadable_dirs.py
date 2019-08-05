@@ -60,7 +60,7 @@ def unreadable_query():
     """
     pinode = m.inode.alias('parent_inode')
 
-    q = (sa.select([pinode.c.uid, pinode.c.gid, m.dusql_path_func(pinode.c.id).label('path')])
+    q = (sa.select([pinode.c.uid, pinode.c.gid, m.dusql_path_func(pinode.c.id).label('path'), m.dusql_project_func(pinode.c.id).label('root_gid')])
             .select_from(
                 pinode
                 .join(m.parent, pinode.c.id == m.parent.c.parent_id)
@@ -69,7 +69,11 @@ def unreadable_query():
             .where(m.inode.c.mode == None)
             ).alias('unreadable')
 
-    q = sa.select([q]).where(sa.not_(q.c.path.like('%/tmp/%')))
+    q = (sa.select([q])
+            .where(sa.not_(q.c.path.like('%/tmp/%')))
+            .where(sa.not_(q.c.path.like('%/dask-worker-space/%')))
+            .where(q.c.gid == q.c.root_gid)
+            )
 
     return q
 
