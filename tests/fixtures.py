@@ -16,30 +16,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sqlalchemy as sa
-from sqlalchemy.orm import sessionmaker
-from contextlib import contextmanager
+import grafanadb.db as db
 
-engine = None
+import pytest
+import logging
 
-Session = sessionmaker()
+@pytest.fixture(scope='session')
+def db_():
+    logging.basicConfig()
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+    with db.connect() as c:
+        yield c
 
-@contextmanager
-def connect(url='postgresql://localhost:9876/grafana'):
-    """
-    Get a connection to the database (context manager)::
+@pytest.fixture
+def conn(db_):
+    t = db_.begin()
+    yield db_
+    t.rollback()
 
-        with connect() as conn:
-            conn.execute(q)
-    """
-    global engine
-    if engine is None:
-        engine = sa.create_engine(url)
-        Session.configure(bind=engine)
-
-    conn = engine.connect()
-
-    yield conn
-
-    conn.close()
-
+@pytest.fixture
+def session(db_):
+    s = db.Session()
+    yield s
+    s.rollback()

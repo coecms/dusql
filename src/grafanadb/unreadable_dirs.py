@@ -28,7 +28,9 @@ from jinja2 import Template
 email_template = """
 Hi {{fullname}},
 
-You've got {{count}} {{'directories' if count > 1 else 'directory'}} using CLEX storage at NCI that CMS can't see.
+As per Claire's email on the 12/08/2019 CLEX CMS is now monitoring storage usage for our projects
+
+You've got {{count}} {{'directories' if count > 1 else 'directory'}} using CLEX storage at NCI that we can't see.
 
 {% if count < 5 -%}
 Please review the paths listed below to ensure no data with access restrictions is included in those paths. 
@@ -38,14 +40,17 @@ If no such data exists, please fix your permissions as soon as possible by runni
     chmod -R g+rX {{path}}
 {%- endfor -%}
 {%- else -%}
-Please review the paths listed in /g/data/w35/saw562/dusql/users/{{username}}.txt to ensure no data with access restrictions is included in those paths. 
+Please review the paths listed in /g/data/hh5/tmp/dusql/users/{{username}}.txt to ensure no data with access restrictions is included in those paths. 
 
 If no such data exists, please fix your permissions as soon as possible by running:
 
-    xargs chmod -R g+rX < /g/data/w35/saw562/dusql/users/{{username}}.txt
+    xargs chmod -R g+rX < /g/data/hh5/tmp/dusql/users/{{username}}.txt
 {%- endif %}
 
 If you have data you can not open to the whole group, please contact the CMS team (cws_help@nci.org.au) with the details of which paths need to keep access restrictions and why.
+
+You can check out our prototype monitoring dashboard at https://accessdev.nci.org.au/grafana/d/toeLAYDWz/user-report?orgId=1&var-userid={{username}} (log in with your NCI account)
+PLease let us know if you have any suggestions on what it would be useful to measure.
 
 Tip: remember to check this wiki page [1] to find ways to create files with group permissions directly.
 
@@ -58,22 +63,22 @@ def unreadable_query():
     """
     Returns (uid, path) for each path that cannot be 'stat'ed or directory opened
     """
-    pinode = m.inode.alias('parent_inode')
+    parent = m.Inode.__table__.alias('parent')
+    root = m.Inode.__table__.alias('root')
+    inode = m.Inode.__table__.alias('inode')
 
-    q = (sa.select([pinode.c.uid, pinode.c.gid, m.dusql_path_func(pinode.c.id).label('path'), m.dusql_project_func(pinode.c.id).label('root_gid')])
+    subq = (sa.select([parent.c.uid, parent.c.gid, root.c.gid.label('root_gid'), parent.c.basename, parent.c.device, parent.c.parent_inode])
             .select_from(
-                pinode
-                .join(m.parent, pinode.c.id == m.parent.c.parent_id)
-                .join(m.inode, m.inode.c.id == m.parent.c.id)
+                inode
+                .join(parent, sa.and_(inode.c.parent_inode == parent.c.inode, inode.c.device == parent.c.device))
+                .join(root, sa.and_(inode.c.root_inode == root.c.inode, inode.c.device == root.c.device))
                 )
-            .where(m.inode.c.mode == None)
-            ).alias('unreadable')
+            .where(inode.c.mode == None)
+            .distinct()
+            .alias())
 
-    q = (sa.select([q])
-            .where(sa.not_(q.c.path.like('%/tmp/%')))
-            .where(sa.not_(q.c.path.like('%/dask-worker-space/%')))
-            .where(q.c.gid == q.c.root_gid)
-            )
+    q = sa.select([subq.c.uid, subq.c.gid, subq.c.root_gid, sa.func.dusql_path_func(subq.c.parent_inode, subq.c.device, subq.c.basename).label('path')]).alias()
+    q = sa.select(q.c).where(sa.not_(q.c.path.like('%/tmp/%')))
 
     return q
 
@@ -82,10 +87,9 @@ def unreadable_report(conn):
     uq = unreadable_query()
 
     df = pandas.read_sql_query(uq, conn)
+    print(df)
 
     j_template = Template(email_template)
-
-    df = df[df.uid.isin([11364, 6826,5424,603, 2014])]
 
     messages = []
 
@@ -104,7 +108,7 @@ def unreadable_report(conn):
             })
         print(messages[-1]['message'])
 
-        with open(f'/g/data/w35/saw562/dusql/users/{username}.txt', 'w') as f:
+        with open(f'/g/data/hh5/tmp/dusql/users/{username}.txt', 'w') as f:
             for path in paths:
                 f.write(path + '\n')
 

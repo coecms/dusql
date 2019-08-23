@@ -27,7 +27,7 @@ import types
 def scan_entry(parent_device, parent_inode, scan_time, basename, stat, ipath):
     return (
         stat.st_ino,
-        stat.st_dev,
+        parent_device,
         stat.st_mode,
         stat.st_uid,
         stat.st_gid,
@@ -36,7 +36,7 @@ def scan_entry(parent_device, parent_inode, scan_time, basename, stat, ipath):
         scan_time,
         basename.decode('utf-8', 'backslashreplace'),
         ipath[0],
-        ipath[-1],
+        ipath[-2] if len(ipath) >= 2 else None,
         )
 
 unreadable_stat = types.SimpleNamespace(st_ino=None, st_dev=None, st_mode=None, st_uid=None, st_gid=None, st_size=None, st_mtime=None)
@@ -91,7 +91,7 @@ def scan_root(root_path, csvwriter):
     scan_time = time.time()
     ipath = [stat.st_ino]
 
-    csvwriter.writerow(scan_entry(parent_device = None, parent_inode = None, scan_time = scan_time, basename = broot_path, stat = stat, ipath=ipath))
+    csvwriter.writerow(scan_entry(parent_device = stat.st_dev, parent_inode = None, scan_time = scan_time, basename = broot_path, stat = stat, ipath=ipath))
 
     csvwriter.writerows(
             tqdm.tqdm(

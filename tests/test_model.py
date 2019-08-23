@@ -16,30 +16,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import grafanadb.model as model
+
 import sqlalchemy as sa
-from sqlalchemy.orm import sessionmaker
-from contextlib import contextmanager
+from fixtures import *
 
-engine = None
+def test_inode_table(conn):
+    q = conn.execute(model.Inode.__table__.select().limit(1))
+    assert q.fetchone() is not None
 
-Session = sessionmaker()
 
-@contextmanager
-def connect(url='postgresql://localhost:9876/grafana'):
-    """
-    Get a connection to the database (context manager)::
+def test_inode(session):
+    q = session.query(model.Inode).filter(sa.not_(model.Inode.basename.like('/%'))).limit(1)
+    inode = q.one()
+    assert inode is not None
 
-        with connect() as conn:
-            conn.execute(q)
-    """
-    global engine
-    if engine is None:
-        engine = sa.create_engine(url)
-        Session.configure(bind=engine)
+    assert inode.root is not None
+    assert inode.parent is not None
 
-    conn = engine.connect()
-
-    yield conn
-
-    conn.close()
-
+    assert inode.path is not None

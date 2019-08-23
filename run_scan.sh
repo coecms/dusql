@@ -1,10 +1,12 @@
 #!/bin/bash
 #PBS -q normal
 #PBS -l ncpus=2
-#PBS -l walltime=4:00:00
+#PBS -l walltime=2:00:00
 #PBS -l mem=2gb
 #PBS -l jobfs=20gb
 #PBS -l wd
+#PBS -j oe
+#PBS -m e
 
 
 set -euo pipefail
@@ -14,8 +16,8 @@ module load conda
 
 #set -x
 
-PROJECTS="hh5 v45 w35 w40 w42 w48 w97"
-#PROJECTS="w40"
+PROJECTS="hh5/tmp v45 w35 w40 w42 w48 w97"
+#PROJECTS="w35"
 
 sed -e 's:\<\(\S\+\):/g/data/\1 /short/\1:g' -e 's:\s\+:\n:g' <<< $PROJECTS | parallel -v --jobs 4 python src/grafanadb/dusql_scan.py {} --output $TMPDIR/'dusql.{= $_=~ s:/:_:g =}.csv'
 
@@ -29,7 +31,7 @@ DROP TABLE IF EXISTS dusql_inode CASCADE;
 CREATE UNLOGGED TABLE dusql_inode (
         basename TEXT NOT NULL,
         inode BIGINT,
-        device BIGINT,
+        device BIGINT NOT NULL,
         mode INTEGER,
         uid INTEGER,
         gid INTEGER,
@@ -68,5 +70,5 @@ trap "{ kill $tunnelid; }" EXIT
 
 sleep 2
 
-time psql -h localhost -p 9876  -d grafana -f <(cat $TMPDIR/dusql_update_head $TMPDIR/dusql.*.csv $TMPDIR/dusql_update_tail)
+time psql -h localhost -p 9876  -d grafana -f <(cat $TMPDIR/dusql_update_head $TMPDIR/dusql.*.csv $TMPDIR/dusql_update_tail sql/dusql_schema.sql)
 

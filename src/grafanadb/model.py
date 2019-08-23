@@ -17,33 +17,29 @@
 # limitations under the License.
 
 import sqlalchemy as sa
+from sqlalchemy.ext.declarative import declarative_base
+import sqlalchemy.orm as orm
 
 metadata = sa.MetaData()
+Base = declarative_base()
 
 # An inode on the file system
-inode = sa.Table('dusql_inode', metadata,
-                 sa.Column('id', sa.Integer, primary_key=True),
-                 sa.Column('basename', sa.Text),
-                 sa.Column('parent_device', sa.BigInteger),
-                 sa.Column('parent_inode', sa.BigInteger),
-                 sa.Column('device', sa.BigInteger),
-                 sa.Column('inode', sa.BigInteger),
-                 sa.Column('mode', sa.Integer),
-                 sa.Column('uid', sa.Integer),
-                 sa.Column('gid', sa.Integer),
-                 sa.Column('size', sa.BigInteger),
-                 sa.Column('mtime', sa.Float),
-                 sa.Column('scan_time', sa.Float),
-                 )
+class Inode(Base):
+    __tablename__ = 'dusql_inode'
 
-# Link an inode to its parent
-parent = sa.Table('dusql_parent', metadata,
-                  sa.Column('id', sa.Integer, sa.ForeignKey('dusql_inode.id'), primary_key=True),
-                  sa.Column('parent_id', sa.Integer, sa.ForeignKey('dusql_inode.id')),
-                  )
+    basename = sa.Column('basename', sa.Text, primary_key=True)
+    inode = sa.Column('inode', sa.BigInteger)
+    device = sa.Column('device', sa.BigInteger, primary_key=True)
+    mode = sa.Column('mode', sa.Integer)
+    uid = sa.Column('uid', sa.Integer)
+    gid = sa.Column('gid', sa.Integer)
+    size = sa.Column('size', sa.BigInteger)
+    mtime = sa.Column('mtime', sa.Float)
+    scan_time = sa.Column('scan_time', sa.Float)
+    root_inode = sa.Column('root_inode', sa.BigInteger, sa.ForeignKey('dusql_inode.inode'))
+    parent_inode = sa.Column('parent_inode', sa.BigInteger, sa.ForeignKey('dusql_inode.inode'), primary_key=True)
 
-# Pass a inode id to dusql_path_func inside a query to get the full path to that inode
-dusql_path_func = sa.func.dusql_path_func
+    root = orm.relationship('Inode', primaryjoin=sa.and_(orm.remote(inode)==orm.foreign(root_inode), orm.remote(device) == orm.foreign(device)))
+    parent = orm.relationship('Inode', primaryjoin=sa.and_(orm.remote(inode)==orm.foreign(parent_inode), orm.remote(device) == orm.foreign(device)))
 
-# Pass a inode id to dusql_project_func inside a query to get the root project gid
-dusql_project_func = sa.func.dusql_project_func
+    path = orm.column_property(sa.func.dusql_path_func(parent_inode, device, basename), deferred=True)
