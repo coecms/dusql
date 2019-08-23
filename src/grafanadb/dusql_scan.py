@@ -55,7 +55,7 @@ def scan(path, scan_time, parent_device, parent_inode, ipath):
                     if entry.is_dir(follow_symlinks=False) and parent_device == stat.st_dev:
                         yield from scan(entry.path, scan_time, stat.st_dev, stat.st_ino, entry_ipath)
 
-                except PermissionError:
+                except (PermissionError, OSError):
                     stat = unreadable_stat
                 except FileNotFoundError:
                     continue
