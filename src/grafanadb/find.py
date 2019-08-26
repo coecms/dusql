@@ -22,61 +22,6 @@ import sqlalchemy as sa
 from collections.abc import Iterable
 import os
 
-def find(root_paths):
-    # Convert single string/Path into an iterable
-    if isinstance(root_paths, str) or not isinstance(root_paths, Iterable):
-        root_paths = [root_paths]
-
-    roots = [(s.st_dev, s.st_ino) for s in [os.stat(p) for p in root_paths]]
-
-    roots = sa.union_all(*[sa.select([sa.literal(r[0]).label('device'), sa.literal(r[1]).label('inode')]) for r in roots]).alias('roots')
-
-    inode = m.Inode.__table__.alias('inode')
-    cte = (sa.select([*inode.c, sa.func.dusql_path_func(inode.c.parent_inode, inode.c.device, inode.c.basename).label('path')])
-            .select_from(
-                inode
-                .join(roots, sa.and_(inode.c.inode == roots.c.inode,
-                    inode.c.device == roots.c.device))
-                )
-            ).cte(recursive=True)
-
-    parent = cte.alias('parent')
-   
-    child_paths = cte.union_all(
-        sa.select([
-            *inode.c,
-            (parent.c.path + '/' + inode.c.basename).label('path')
-            ])
-        .where(inode.c.parent_inode == parent.c.inode)
-        .where(inode.c.device == parent.c.device)
-        ).alias('find')
-
-    return child_paths
-
-
-def boolean_match(q, column, arg, callback=lambda x: x):
-    if arg is not None:
-        if arg.startswith('!') or arg.startswith('-'):
-            value = callback(arg[1:])
-            q = q.where(column != value)
-        else:
-            value = callback(arg)
-            q = q.where(column == value)
-    return q
-
-def comparison_match(q, column, arg, callback=lambda x: x):
-    if arg is not None:
-        if arg.startswith('+'):
-            value = callback(arg[1:])
-            q = q.where(column >= value)
-        elif arg.startswith('-'):
-            value = callback(arg[1:])
-            q = q.where(column <= value)
-        else:
-            value = callback(arg)
-            q = q.where(column == value)
-    return q
-
 def time_delta_arg(arg):
     import pandas
     try:
@@ -113,6 +58,88 @@ def size_arg(arg):
     return value * scale
 
 
+def find_impl(root_inodes, gid, not_gid, uid, not_uid, mtime, size):
+    print(root_inodes)
+
+    roots = sa.union_all(*[sa.select([sa.literal(r[0]).label('device'), sa.literal(r[1]).label('inode')]) for r in root_inodes]).alias('roots')
+
+    inode = m.Inode.__table__.alias('inode')
+    cte = (sa.select([*inode.c, sa.func.dusql_path_func(inode.c.parent_inode, inode.c.device, inode.c.basename).label('path')])
+            .select_from(
+                inode
+                .join(roots, sa.and_(inode.c.inode == roots.c.inode,
+                    inode.c.device == roots.c.device))
+                )
+            ).cte(recursive=True)
+
+    parent = cte.alias('parent')
+   
+    child_paths = cte.union_all(
+        sa.select([
+            *inode.c,
+            (parent.c.path + '/' + inode.c.basename).label('path')
+            ])
+        .where(inode.c.parent_inode == parent.c.inode)
+        .where(inode.c.device == parent.c.device)
+        ).alias('find')
+
+    q = sa.select([child_paths.c.path])
+
+    if gid is not None:
+        q = q.where(child_paths.c.gid == gid)
+    if not_gid is not None:
+        q = q.where(child_paths.c.gid != not_gid)
+    if uid is not None:
+        q = q.where(child_paths.c.uid == uid)
+    if not_uid is not None:
+        q = q.where(child_paths.c.uid != not_uid)
+    if mtime is not None:
+        if mtime < 0:
+            q = q.where(child_paths.c.mtime <= -mtime)
+        else:
+            q = q.where(child_paths.c.mtime >= mtime)
+    if size is not None:
+        if size < 0:
+            q = q.where(child_paths.c.size <= -size)
+        else:
+            q = q.where(child_paths.c.size >= size)
+
+    return q
+
+
+def find_parse(root_paths, group, user, mtime, size):
+    import grp
+    import pwd
+
+    # Convert single string/Path into an iterable
+    if isinstance(root_paths, str) or not isinstance(root_paths, Iterable):
+        root_paths = [root_paths]
+
+    roots = [(s.st_dev, s.st_ino) for s in [os.stat(p) for p in root_paths]]
+
+    response = {'root_inodes': roots, 'gid': None, 'not_gid': None, 'uid': None,
+            'not_uid': None, 'mtime': None, 'size': None}
+
+    if group is not None:
+        if group.startswith('!') or group.startswith('-'):
+            response['not_gid'] = grp.getgrnam(group[1:]).gr_gid
+        else:
+            response['gid'] = grp.getgrnam(group).gr_gid
+    if user is not None:
+        if user.startswith('!') or user.startswith('-'):
+            response['not_uid'] = pwd.getpwnam(user[1:]).pw_uid
+        else:
+            response['uid'] = pwd.getpwnam(user).pw_uid
+    if mtime is not None:
+        response['mtime'] = time_delta_arg(mtime)
+    if size is not None:
+        response['size'] = size_arg(size)
+
+    print(response)
+
+    return response
+
+
 def cli(argv):
     """
     Find files in the Dusql database
@@ -127,9 +154,8 @@ def cli(argv):
     """
     import argparse
     import grafanadb.db as db
-    import grp
-    import pwd
     import textwrap
+    import requests
 
     parser = argparse.ArgumentParser(description=textwrap.dedent(cli.__doc__), formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('roots', nargs='+', help='Root search paths')
@@ -139,17 +165,17 @@ def cli(argv):
     parser.add_argument('--size', metavar='N', help='File size ("16m", "1GB")')
     args = parser.parse_args()
 
-    f = find(args.roots)
-    q = sa.select([f.c.path])
+    f_args = find_parse(args.roots, args.group, args.user, args.mtime, args.size)
 
-    q = boolean_match(q, f.c.gid, args.group, lambda g: grp.getgrnam(g).gr_gid)
-    q = boolean_match(q, f.c.uid, args.user, lambda u: pwd.getpwnam(u).pw_uid)
-    q = comparison_match(q, f.c.mtime, args.mtime, time_delta_arg)
-    q = comparison_match(q, f.c.size, args.size, size_arg)
+    r = requests.get('http://localhost:5000/find', json=f_args)
+    for row in r.json():
+        print(row)
 
-    with db.connect() as conn:
-        for row in conn.execute(q):
-            print(row.path)
+    #q = find_impl(**f_args)
+
+    #with db.connect() as conn:
+    #    for row in conn.execute(q):
+    #        print(row.path)
 
 if __name__ == '__main__':
     import sys
