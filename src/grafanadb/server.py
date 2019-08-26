@@ -47,9 +47,25 @@ find_schema = {
 
 @app.route('/find')
 def find():
-    json = request.get_json()
-    validate(json, schema=find_schema)
+    try:
+        json = request.get_json()
+        validate(json, schema=find_schema)
 
-    q = find_impl(**json)
-    with connect() as conn:
-        return jsonify([row.path for row in conn.execute(q)])
+        q = find_impl(**json)
+        with connect() as conn:
+            return jsonify([row.path for row in conn.execute(q)])
+    except:
+        abort(400)
+
+@app.route('/du')
+def du():
+    try:
+        json = request.get_json()
+        validate(json, schema=find_schema)
+
+        q = du_impl(**json)
+        with connect() as conn:
+            r = conn.execute(q).fetchone()
+            return {'size': r.size, 'inodes': r.inodes}
+    except:
+        abort(400)

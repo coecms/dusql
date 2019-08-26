@@ -64,8 +64,22 @@ class Du():
     def run(cls, args):
         f_args = find_parse(args.roots, args.group, args.user, args.mtime, args.size)
 
-        r = requests.get('https://accessdev-test.nci.org.au/dusql/du', json=f_args)
-        print(r.json())
+        r = requests.get('https://accessdev-test.nci.org.au/dusql/du', json=f_args).json()
+
+        print(f'{pretty_size(r["size"])} bytes, {r["inodes"]} files')
+
+def pretty_size(size):
+    from math import floor, log
+    scale = floor(log(size) / log(1024))
+
+    suffix = {
+        0: 'b',
+        1: 'kb',
+        2: 'mb',
+        3: 'gb',
+        4: 'tb',
+        }
+    return f'{size / 1024**scale:.2f} {suffix}'
 
 class Find():
     """
