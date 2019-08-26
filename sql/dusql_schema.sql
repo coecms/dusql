@@ -16,6 +16,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS dusql_inode (
         parent_inode BIGINT -- inode of this file's parent directory
 );
 CREATE INDEX IF NOT EXISTS dusql_inode_id ON dusql_inode(device, inode);
+CREATE INDEX IF NOT EXISTS dusql_inode_parent ON dusql_inode(device, parent_inode);
 
 /*
  * Stores a summary of historical filesystem state
