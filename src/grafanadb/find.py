@@ -58,9 +58,10 @@ def size_arg(arg):
     return value * scale
 
 
-def find_impl(root_inodes, gid, not_gid, uid, not_uid, mtime, size):
-    print(root_inodes)
-
+def recursive_search(root_inodes, gid, not_gid, uid, not_uid, mtime, size):
+    """
+    Perform a recursive search of all files under `root_inodes` with the given constraints
+    """
     roots = sa.union_all(*[sa.select([sa.literal(r[0]).label('device'), sa.literal(r[1]).label('inode')]) for r in root_inodes]).alias('roots')
 
     inode = m.Inode.__table__.alias('inode')
@@ -83,7 +84,7 @@ def find_impl(root_inodes, gid, not_gid, uid, not_uid, mtime, size):
         .where(inode.c.device == parent.c.device)
         ).alias('find')
 
-    q = sa.select([child_paths.c.path])
+    q = sa.select(child_paths.c)
 
     if gid is not None:
         q = q.where(child_paths.c.gid == gid)
@@ -106,8 +107,17 @@ def find_impl(root_inodes, gid, not_gid, uid, not_uid, mtime, size):
 
     return q
 
+def du_impl(*args, **kwargs):
+    q = recursive_search(*args, **kwargs).alias('find')
+    q = sa.select([sa.func.sum(q.c.size).label('size'),sa.func.count().label('inodes')])
+    return q
 
-def find_parse(root_paths, group, user, mtime, size):
+def find_impl(*args, **kwargs):
+    q = recursive_search(*args, **kwargs).alias('find')
+    q = sa.select([q.c.path])
+    return q
+
+def find_parse(root_paths, group=None, user=None, mtime=None, size=None):
     import grp
     import pwd
 
@@ -167,7 +177,7 @@ def cli(argv):
 
     f_args = find_parse(args.roots, args.group, args.user, args.mtime, args.size)
 
-    r = requests.get('http://localhost:5000/find', json=f_args)
+    r = requests.get('https://accessdev-test.nci.org.au/dusql/find', json=f_args)
     for row in r.json():
         print(row)
 

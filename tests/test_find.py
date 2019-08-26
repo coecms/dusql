@@ -16,16 +16,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#from grafanadb.find import find
+from grafanadb.find import *
 
 from fixtures import *
 
-#def test_find_single(conn):
-#    q = find('/short/w35/saw562/scratch')
-#    r = conn.execute(q)
-#    assert isinstance(r.fetchone().path, str)
-#
-#def test_find_list(conn):
-#    q = find(['/short/w35/saw562/scratch', '/short/w35/saw562/tmp'])
-#    r = conn.execute(q)
-#    assert isinstance(r.fetchone().path, str)
+def test_find_single(conn):
+    args = find_parse('/short/w35/saw562/scratch')
+    q = find_impl(**args)
+    r = conn.execute(q)
+    assert isinstance(r.fetchone().path, str)
+
+def test_find_list(conn):
+    args = find_parse(['/short/w35/saw562/scratch', '/short/w35/saw562/tmp'])
+    q = find_impl(**args)
+    r = conn.execute(q)
+    assert isinstance(r.fetchone().path, str)
+
+def test_du(conn):
+    args = find_parse(['/short/w35/saw562/scratch', '/short/w35/saw562/tmp'])
+    q = du_impl(**args)
+    r = conn.execute(q).fetchone()
+    assert r.inodes > 0
+    assert r.size > 0
