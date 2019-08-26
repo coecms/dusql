@@ -1,0 +1,31 @@
+package:
+    name: dusqlpg
+    version: 0
+
+source:
+    path: .
+
+build:
+    script: "{{ PYTHON }} -m pip install . --no-deps"
+    noarch: python
+
+requirements:
+    host:
+        - pip
+    run:
+        - python >= 3.6
+        - sqlalchemy
+        - psycopg2
+        - flask
+        - requests
+        - jsonschema
+
+test:
+    requires:
+        - pytest
+    files:
+        - tests
+    commands:
+        - py.test
+    imports:
+        - grafanadb
