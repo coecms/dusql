@@ -51,5 +51,5 @@ def find():
     validate(json, schema=find_schema)
 
     q = find_impl(**json)
-    with connect() as conn:
+    with connect(url='postgresql://localhost:5432/grafana') as conn:
         return jsonify([row.path for row in conn.execute(q)])
