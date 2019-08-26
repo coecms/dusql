@@ -65,6 +65,7 @@ class Du():
         f_args = find_parse(args.roots, args.group, args.user, args.mtime, args.size)
 
         r = requests.get('https://accessdev-test.nci.org.au/dusql/du', json=f_args).json()
+        print(r)
 
         print(f'{pretty_size(r["size"])} bytes, {r["inodes"]} files')
 

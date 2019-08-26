@@ -16,12 +16,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, abort
 from jsonschema import validate
-from grafanadb.find import find_impl
+from grafanadb.find import find_impl, du_impl
 from grafanadb.db import connect
 
 app = Flask(__name__)
+app.config['DATABASE'] = 'postgresql://localhost:5432/grafana'
 
 find_schema = {
         'type': 'object',
@@ -52,20 +53,17 @@ def find():
         validate(json, schema=find_schema)
 
         q = find_impl(**json)
-        with connect(url='postgresql://localhost:5432/grafana') as conn:
+        with connect(url=app.config['DATABASE']) as conn:
             return jsonify([row.path for row in conn.execute(q)])
     except:
         abort(400)
 
 @app.route('/du')
 def du():
-    try:
-        json = request.get_json()
-        validate(json, schema=find_schema)
+    json = request.get_json()
+    validate(json, schema=find_schema)
 
-        q = du_impl(**json)
-        with connect() as conn:
-            r = conn.execute(q).fetchone()
-            return {'size': r.size, 'inodes': r.inodes}
-    except:
-        abort(400)
+    q = du_impl(**json)
+    with connect(url=app.config['DATABASE']) as conn:
+        r = conn.execute(q).fetchone()
+        return {'size': float(r.size), 'inodes': r.inodes}
