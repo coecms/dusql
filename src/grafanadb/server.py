@@ -66,4 +66,4 @@ def du():
     q = du_impl(**json)
     with connect(url=app.config['DATABASE']) as conn:
         r = conn.execute(q).fetchone()
-        return {'size': float(r.size), 'inodes': r.inodes}
+        return {'size': float(r.size) if r.size is not None else 0.0, 'inodes': r.inodes}

@@ -22,42 +22,6 @@ import sqlalchemy as sa
 from collections.abc import Iterable
 import os
 
-def time_delta_arg(arg):
-    import pandas
-    try:
-        time = pandas.to_datetime(arg)
-    except ValueError:
-        delta = pandas.Timedelta(arg)
-        time = pandas.Timestamp.utcnow() - delta
-    print(time)
-    return time.timestamp()
-
-def size_arg(arg):
-    arg = arg.lower()
-
-    scale = 1
-    if arg.endswith('ib'):
-        arg = arg[:-2]
-    elif arg.endswith('b'):
-        arg = arg[:-1]
-
-    if arg.endswith('t'):
-        scale = 1024**4
-        arg = arg[:-1]
-    elif arg.endswith('g'):
-        scale = 1024**3
-        arg = arg[:-1]
-    elif arg.endswith('m'):
-        scale = 1024**2
-        arg = arg[:-1]
-    elif arg.endswith('k'):
-        scale = 1024**1
-        arg = arg[:-1]
-
-    value = float(arg)
-    return value * scale
-
-
 def recursive_search(root_inodes, gid, not_gid, uid, not_uid, mtime, size):
     """
     Perform a recursive search of all files under `root_inodes` with the given constraints
@@ -108,16 +72,71 @@ def recursive_search(root_inodes, gid, not_gid, uid, not_uid, mtime, size):
     return q
 
 def du_impl(*args, **kwargs):
+    """
+    Returns the total size in bytes and inodes of paths matching the find condition
+    """
     q = recursive_search(*args, **kwargs).alias('find')
     q = sa.select([sa.func.sum(q.c.size).label('size'),sa.func.count().label('inodes')])
     return q
 
 def find_impl(*args, **kwargs):
+    """
+    Returns all paths matching the find conditions
+    """
     q = recursive_search(*args, **kwargs).alias('find')
     q = sa.select([q.c.path])
     return q
 
+def time_delta_arg(arg):
+    """
+    Conver a command line time argument to a posix timestamp
+
+    arg is a string convertable by pandas into either a datetime or time delta.
+
+    If a delta the timestamp returned is that delta before now
+    """
+    import pandas
+    try:
+        time = pandas.to_datetime(arg)
+    except ValueError:
+        delta = pandas.Timedelta(arg)
+        time = pandas.Timestamp.utcnow() - delta
+    return time.timestamp()
+
+def size_arg(arg):
+    """
+    Convert a command line size argument to bytes
+    """
+    arg = arg.lower()
+
+    scale = 1
+    if arg.endswith('ib'):
+        arg = arg[:-2]
+    elif arg.endswith('b'):
+        arg = arg[:-1]
+
+    if arg.endswith('t'):
+        scale = 1024**4
+        arg = arg[:-1]
+    elif arg.endswith('g'):
+        scale = 1024**3
+        arg = arg[:-1]
+    elif arg.endswith('m'):
+        scale = 1024**2
+        arg = arg[:-1]
+    elif arg.endswith('k'):
+        scale = 1024**1
+        arg = arg[:-1]
+
+    value = float(arg)
+    return value * scale
+
+
 def find_parse(root_paths, group=None, user=None, mtime=None, size=None):
+    """
+    Convert the values given on the command line to the JSON needed for a
+    request on the server
+    """
     import grp
     import pwd
 
@@ -141,52 +160,12 @@ def find_parse(root_paths, group=None, user=None, mtime=None, size=None):
         else:
             response['uid'] = pwd.getpwnam(user).pw_uid
     if mtime is not None:
-        response['mtime'] = time_delta_arg(mtime)
+        if mtime.startswith('-'):
+            response['mtime'] = -time_delta_arg(mtime[1:])
+        else:
+            response['mtime'] = time_delta_arg(mtime)
     if size is not None:
         response['size'] = size_arg(size)
 
-    print(response)
-
     return response
 
-
-def cli(argv):
-    """
-    Find files in the Dusql database
-
-    Note that only CLEX project storage is available for search
-
-    'NAME' arguments can start with either '!' or '-' to find files that don't
-    have that name
-
-    'N' arguments can start with '+' to find files greater/newer than N or '-'
-    to find files less/older than N
-    """
-    import argparse
-    import grafanadb.db as db
-    import textwrap
-    import requests
-
-    parser = argparse.ArgumentParser(description=textwrap.dedent(cli.__doc__), formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('roots', nargs='+', help='Root search paths')
-    parser.add_argument('--group', metavar='NAME', help='File belongs to group')
-    parser.add_argument('--user', metavar='NAME', help='File belongs to user')
-    parser.add_argument('--mtime', metavar='N', help='File modification time (can be a year: "2018", date "20170602", or timedelta before today "1y6m")')
-    parser.add_argument('--size', metavar='N', help='File size ("16m", "1GB")')
-    args = parser.parse_args()
-
-    f_args = find_parse(args.roots, args.group, args.user, args.mtime, args.size)
-
-    r = requests.get('https://accessdev-test.nci.org.au/dusql/find', json=f_args)
-    for row in r.json():
-        print(row)
-
-    #q = find_impl(**f_args)
-
-    #with db.connect() as conn:
-    #    for row in conn.execute(q):
-    #        print(row.path)
-
-if __name__ == '__main__':
-    import sys
-    cli(sys.argv)
