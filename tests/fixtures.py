@@ -21,18 +21,21 @@ import grafanadb.db as db
 import pytest
 import logging
 
-@pytest.fixture(scope='session')
+
+@pytest.fixture(scope="session")
 def db_():
     logging.basicConfig()
-    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
     with db.connect() as c:
         yield c
+
 
 @pytest.fixture
 def conn(db_):
     t = db_.begin()
     yield db_
     t.rollback()
+
 
 @pytest.fixture
 def session(db_):

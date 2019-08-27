@@ -24,6 +24,7 @@ import argparse
 import sys
 import types
 
+
 def scan_entry(parent_device, parent_inode, scan_time, basename, stat, ipath):
     return (
         stat.st_ino,
@@ -34,12 +35,22 @@ def scan_entry(parent_device, parent_inode, scan_time, basename, stat, ipath):
         stat.st_size,
         stat.st_mtime,
         scan_time,
-        basename.decode('utf-8', 'backslashreplace'),
+        basename.decode("utf-8", "backslashreplace"),
         ipath[0],
         ipath[-2] if len(ipath) >= 2 else None,
-        )
+    )
 
-unreadable_stat = types.SimpleNamespace(st_ino=None, st_dev=None, st_mode=None, st_uid=None, st_gid=None, st_size=None, st_mtime=None)
+
+unreadable_stat = types.SimpleNamespace(
+    st_ino=None,
+    st_dev=None,
+    st_mode=None,
+    st_uid=None,
+    st_gid=None,
+    st_size=None,
+    st_mtime=None,
+)
+
 
 def scan(path, scan_time, parent_device, parent_inode, ipath):
 
@@ -52,8 +63,13 @@ def scan(path, scan_time, parent_device, parent_inode, ipath):
                 try:
                     stat = entry.stat(follow_symlinks=False)
 
-                    if entry.is_dir(follow_symlinks=False) and parent_device == stat.st_dev:
-                        yield from scan(entry.path, scan_time, stat.st_dev, stat.st_ino, entry_ipath)
+                    if (
+                        entry.is_dir(follow_symlinks=False)
+                        and parent_device == stat.st_dev
+                    ):
+                        yield from scan(
+                            entry.path, scan_time, stat.st_dev, stat.st_ino, entry_ipath
+                        )
 
                 except (PermissionError, OSError):
                     stat = unreadable_stat
@@ -61,16 +77,17 @@ def scan(path, scan_time, parent_device, parent_inode, ipath):
                     continue
 
                 yield scan_entry(
-                        parent_device = parent_device,
-                        parent_inode = parent_inode,
-                        scan_time = scan_time,
-                        basename = entry.name,
-                        stat = stat,
-                        ipath = entry_ipath)
+                    parent_device=parent_device,
+                    parent_inode=parent_inode,
+                    scan_time=scan_time,
+                    basename=entry.name,
+                    stat=stat,
+                    ipath=entry_ipath,
+                )
 
     except PermissionError:
         return
-        #yield scan_entry(
+        # yield scan_entry(
         #        parent_device = parent_device,
         #        parent_inode = parent_inode,
         #        scan_time = scan_time,
@@ -80,8 +97,9 @@ def scan(path, scan_time, parent_device, parent_inode, ipath):
     except FileNotFoundError:
         return
 
+
 def scan_root(root_path, csvwriter):
-    broot_path = root_path.encode('utf-8')
+    broot_path = root_path.encode("utf-8")
 
     try:
         stat = os.stat(root_path)
@@ -91,26 +109,38 @@ def scan_root(root_path, csvwriter):
     scan_time = time.time()
     ipath = [stat.st_ino]
 
-    csvwriter.writerow(scan_entry(parent_device = stat.st_dev, parent_inode = None, scan_time = scan_time, basename = broot_path, stat = stat, ipath=ipath))
+    csvwriter.writerow(
+        scan_entry(
+            parent_device=stat.st_dev,
+            parent_inode=None,
+            scan_time=scan_time,
+            basename=broot_path,
+            stat=stat,
+            ipath=ipath,
+        )
+    )
 
     csvwriter.writerows(
-            tqdm.tqdm(
-                scan(
-                    broot_path,
-                    scan_time = scan_time,
-                    parent_device = stat.st_dev,
-                    parent_inode = stat.st_ino,
-                    ipath = ipath,
-                    ),
-                desc = root_path,
-                disable = None,
-                ),
-            )
+        tqdm.tqdm(
+            scan(
+                broot_path,
+                scan_time=scan_time,
+                parent_device=stat.st_dev,
+                parent_inode=stat.st_ino,
+                ipath=ipath,
+            ),
+            desc=root_path,
+            disable=None,
+        )
+    )
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('path', nargs='*')
-    parser.add_argument('--output','-o',type=argparse.FileType('w'), default=sys.stdout)
+    parser.add_argument("path", nargs="*")
+    parser.add_argument(
+        "--output", "-o", type=argparse.FileType("w"), default=sys.stdout
+    )
     args = parser.parse_args()
 
     cf = csv.writer(args.output)
@@ -118,5 +148,6 @@ def main():
     for root_path in args.path:
         scan_root(root_path, cf)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

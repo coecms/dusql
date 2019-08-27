@@ -20,24 +20,36 @@ from grafanadb.server import *
 
 import pytest
 
+
 @pytest.fixture
 def client():
-    app.config['TESTING'] = True
-    app.config['DATABASE'] = 'postgresql://localhost:9876/grafana'
-    app.config['API_KEY'] = 'test_key'
+    app.config["TESTING"] = True
+    app.config["DATABASE"] = "postgresql://localhost:9876/grafana"
+    app.config["API_KEY"] = "test_key"
 
     with app.test_client() as client:
         yield client
 
+
 def test_no_key(client):
-    r = client.get('/find')
+    r = client.get("/find")
 
     assert r.status_code == 401
 
-def test_find(client):
-    query = {'root_inodes': [(2901541690, 145501262337629518)], 'gid': None, 'not_gid': None, 'uid': None, 'not_uid': None, 'mtime': None, 'size': 17179869184.0, 'api_key': 'test_key'}
 
-    r = client.get('/find', json=query)
+def test_find(client):
+    query = {
+        "root_inodes": [(2901541690, 145501262337629518)],
+        "gid": None,
+        "not_gid": None,
+        "uid": None,
+        "not_uid": None,
+        "mtime": None,
+        "size": 17179869184.0,
+        "api_key": "test_key",
+    }
+
+    r = client.get("/find", json=query)
     assert r.status_code == 200
 
     j = r.get_json()
@@ -45,13 +57,23 @@ def test_find(client):
     assert len(j) > 0
     assert isinstance(j[0], str)
 
-def test_du(client):
-    query = {'root_inodes': [(2901541690, 145501262337629518)], 'gid': None, 'not_gid': None, 'uid': None, 'not_uid': None, 'mtime': None, 'size': 17179869184.0, 'api_key': 'test_key'}
 
-    r = client.get('/du', json=query)
+def test_du(client):
+    query = {
+        "root_inodes": [(2901541690, 145501262337629518)],
+        "gid": None,
+        "not_gid": None,
+        "uid": None,
+        "not_uid": None,
+        "mtime": None,
+        "size": 17179869184.0,
+        "api_key": "test_key",
+    }
+
+    r = client.get("/du", json=query)
     assert r.status_code == 200
 
     j = r.get_json()
 
-    assert j['size'] > 0
-    assert j['inodes'] > 0
+    assert j["size"] > 0
+    assert j["inodes"] > 0

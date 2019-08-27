@@ -24,8 +24,9 @@ engine = None
 
 Session = sessionmaker()
 
+
 @contextmanager
-def connect(url='postgresql://localhost:9876/grafana'):
+def connect(url="postgresql://localhost:9876/grafana"):
     """
     Get a connection to the database (context manager)::
 
@@ -42,4 +43,3 @@ def connect(url='postgresql://localhost:9876/grafana'):
     yield conn
 
     conn.close()
-

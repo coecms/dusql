@@ -23,37 +23,35 @@ from grafanadb.db import connect
 import os
 
 app = Flask(__name__)
-app.config['DATABASE'] = 'postgresql://@/grafana'
-app.config['API_KEY'] = os.environ.get('API_KEY')
+app.config["DATABASE"] = "postgresql://@/grafana"
+app.config["API_KEY"] = os.environ.get("API_KEY")
 
 find_schema = {
-        'type': 'object',
-        'properties': {
-            'root_inodes': {
-                'type': 'array',
-                'contains': {
-                    'type': 'array',
-                    'items': [
-                        {'type': 'number'},
-                        {'type': 'number'},
-                    ],
-                    },
-                },
-            'gid': {'type': ['number', 'null']},
-            'not_gid': {'type': ['number', 'null']},
-            'uid': {'type': ['number', 'null']},
-            'not_uid': {'type': ['number', 'null']},
-            'mtime': {'type': ['number', 'null']},
-            'size': {'type': ['number', 'null']},
-        }
-    }
+    "type": "object",
+    "properties": {
+        "root_inodes": {
+            "type": "array",
+            "contains": {
+                "type": "array",
+                "items": [{"type": "number"}, {"type": "number"}],
+            },
+        },
+        "gid": {"type": ["number", "null"]},
+        "not_gid": {"type": ["number", "null"]},
+        "uid": {"type": ["number", "null"]},
+        "not_uid": {"type": ["number", "null"]},
+        "mtime": {"type": ["number", "null"]},
+        "size": {"type": ["number", "null"]},
+    },
+}
 
-@app.route('/find')
+
+@app.route("/find")
 def find():
     json = request.get_json()
 
-    print(app.config['API_KEY'])
-    if json is None or json.pop('api_key', None) != app.config['API_KEY']:
+    print(app.config["API_KEY"])
+    if json is None or json.pop("api_key", None) != app.config["API_KEY"]:
         abort(401)
 
     try:
@@ -62,15 +60,15 @@ def find():
         abort(400)
 
     q = find_impl(**json)
-    with connect(url=app.config['DATABASE']) as conn:
+    with connect(url=app.config["DATABASE"]) as conn:
         return jsonify([row.path for row in conn.execute(q)])
 
-@app.route('/du')
+
+@app.route("/du")
 def du():
     json = request.get_json()
 
-
-    if json is None or json.pop('api_key', None) != app.config['API_KEY']:
+    if json is None or json.pop("api_key", None) != app.config["API_KEY"]:
         abort(401)
 
     try:
@@ -79,6 +77,9 @@ def du():
         abort(400)
 
     q = du_impl(**json)
-    with connect(url=app.config['DATABASE']) as conn:
+    with connect(url=app.config["DATABASE"]) as conn:
         r = conn.execute(q).fetchone()
-        return {'size': float(r.size) if r.size is not None else 0.0, 'inodes': r.inodes}
+        return {
+            "size": float(r.size) if r.size is not None else 0.0,
+            "inodes": r.inodes,
+        }

@@ -21,13 +21,18 @@ import grafanadb.model as model
 import sqlalchemy as sa
 from fixtures import *
 
+
 def test_inode_table(conn):
     q = conn.execute(model.Inode.__table__.select().limit(1))
     assert q.fetchone() is not None
 
 
 def test_inode(session):
-    q = session.query(model.Inode).filter(sa.not_(model.Inode.basename.like('/%'))).limit(1)
+    q = (
+        session.query(model.Inode)
+        .filter(sa.not_(model.Inode.basename.like("/%")))
+        .limit(1)
+    )
     inode = q.one()
     assert inode is not None
 

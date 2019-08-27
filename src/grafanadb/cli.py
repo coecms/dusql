@@ -22,13 +22,17 @@ import argparse
 import textwrap
 import requests
 
+
 def main():
     """
     Database-driven disk usage analysis
     """
-    parser = argparse.ArgumentParser(description=textwrap.dedent(main.__doc__), formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=textwrap.dedent(main.__doc__),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
 
-    subparser = parser.add_subparsers(help='Sub-commands')
+    subparser = parser.add_subparsers(help="Sub-commands")
     Find.init_parser(subparser)
     Du.init_parser(subparser)
 
@@ -36,7 +40,8 @@ def main():
     if args.run is not None:
         args.run(args)
 
-class Du():
+
+class Du:
     """
     Calculate disk usage of matching files
 
@@ -51,12 +56,21 @@ class Du():
 
     @classmethod
     def init_parser(cls, subparser):
-        parser = subparser.add_parser('du', help='Show usage', description=textwrap.dedent(cls.__doc__), formatter_class=argparse.RawDescriptionHelpFormatter)
-        parser.add_argument('roots', nargs='+', help='Root search paths')
-        parser.add_argument('--group', metavar='NAME', help='File belongs to group')
-        parser.add_argument('--user', metavar='NAME', help='File belongs to user')
-        parser.add_argument('--mtime', metavar='N', help='File modification time (can be a year: "2018", date "20170602", or timedelta before today "1y6m")')
-        parser.add_argument('--size', metavar='N', help='File size ("16m", "1GB")')
+        parser = subparser.add_parser(
+            "du",
+            help="Show usage",
+            description=textwrap.dedent(cls.__doc__),
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+        )
+        parser.add_argument("roots", nargs="+", help="Root search paths")
+        parser.add_argument("--group", metavar="NAME", help="File belongs to group")
+        parser.add_argument("--user", metavar="NAME", help="File belongs to user")
+        parser.add_argument(
+            "--mtime",
+            metavar="N",
+            help='File modification time (can be a year: "2018", date "20170602", or timedelta before today "1y6m")',
+        )
+        parser.add_argument("--size", metavar="N", help='File size ("16m", "1GB")')
 
         parser.set_defaults(run=cls.run)
 
@@ -65,29 +79,26 @@ class Du():
         for root in args.roots:
             f_args = find_parse(root, args.group, args.user, args.mtime, args.size)
 
-            r = requests.get('https://accessdev-test.nci.org.au/dusql/du', json=f_args)
+            r = requests.get("https://accessdev-test.nci.org.au/dusql/du", json=f_args)
             r.raise_for_status()
             r = r.json()
 
             print(f'{pretty_size(r["size"])}, {r["inodes"]:8d} files, {root}')
 
+
 def pretty_size(size):
     from math import floor, log
-    if size==0:
-        return '  0.00B '
+
+    if size == 0:
+        return "  0.00B "
 
     scale = floor(log(size) / log(1024))
 
-    suffix = {
-        0: 'B ',
-        1: 'KB',
-        2: 'MB',
-        3: 'GB',
-        4: 'TB',
-        }
-    return f'{size / 1024**scale:6.2f}{suffix[scale]}'
+    suffix = {0: "B ", 1: "KB", 2: "MB", 3: "GB", 4: "TB"}
+    return f"{size / 1024**scale:6.2f}{suffix[scale]}"
 
-class Find():
+
+class Find:
     """
     Find files in the Dusql database
 
@@ -102,12 +113,21 @@ class Find():
 
     @classmethod
     def init_parser(cls, subparser):
-        parser = subparser.add_parser('find', help='Find files', description=textwrap.dedent(cls.__doc__), formatter_class=argparse.RawDescriptionHelpFormatter)
-        parser.add_argument('roots', nargs='+', help='Root search paths')
-        parser.add_argument('--group', metavar='NAME', help='File belongs to group')
-        parser.add_argument('--user', metavar='NAME', help='File belongs to user')
-        parser.add_argument('--mtime', metavar='N', help='File modification time (can be a year: "2018", date "20170602", or timedelta before today "1y6m")')
-        parser.add_argument('--size', metavar='N', help='File size ("16m", "1GB")')
+        parser = subparser.add_parser(
+            "find",
+            help="Find files",
+            description=textwrap.dedent(cls.__doc__),
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+        )
+        parser.add_argument("roots", nargs="+", help="Root search paths")
+        parser.add_argument("--group", metavar="NAME", help="File belongs to group")
+        parser.add_argument("--user", metavar="NAME", help="File belongs to user")
+        parser.add_argument(
+            "--mtime",
+            metavar="N",
+            help='File modification time (can be a year: "2018", date "20170602", or timedelta before today "1y6m")',
+        )
+        parser.add_argument("--size", metavar="N", help='File size ("16m", "1GB")')
 
         parser.set_defaults(run=cls.run)
 
@@ -115,11 +135,12 @@ class Find():
     def run(cls, args):
         f_args = find_parse(args.roots, args.group, args.user, args.mtime, args.size)
 
-        r = requests.get('https://accessdev-test.nci.org.au/dusql/find', json=f_args)
+        r = requests.get("https://accessdev-test.nci.org.au/dusql/find", json=f_args)
         r.raise_for_status()
 
         for row in r.json():
             print(row)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

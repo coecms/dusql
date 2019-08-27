@@ -59,28 +59,59 @@ Sincerely, CLEX CMS
 [1] http://climate-cms.wikis.unsw.edu.au/Tips:_Custom_file_permissions_at_creation
 """
 
+
 def unreadable_query():
     """
     Returns (uid, path) for each path that cannot be 'stat'ed or directory opened
     """
-    parent = m.Inode.__table__.alias('parent')
-    root = m.Inode.__table__.alias('root')
-    inode = m.Inode.__table__.alias('inode')
+    parent = m.Inode.__table__.alias("parent")
+    root = m.Inode.__table__.alias("root")
+    inode = m.Inode.__table__.alias("inode")
 
-    subq = (sa.select([parent.c.uid, parent.c.gid, root.c.gid.label('root_gid'), parent.c.basename, parent.c.device, parent.c.parent_inode])
-            .select_from(
-                inode
-                .join(parent, sa.and_(inode.c.parent_inode == parent.c.inode, inode.c.device == parent.c.device))
-                .join(root, sa.and_(inode.c.root_inode == root.c.inode, inode.c.device == root.c.device))
-                )
-            .where(inode.c.mode == None)
-            .distinct()
-            .alias())
+    subq = (
+        sa.select(
+            [
+                parent.c.uid,
+                parent.c.gid,
+                root.c.gid.label("root_gid"),
+                parent.c.basename,
+                parent.c.device,
+                parent.c.parent_inode,
+            ]
+        )
+        .select_from(
+            inode.join(
+                parent,
+                sa.and_(
+                    inode.c.parent_inode == parent.c.inode,
+                    inode.c.device == parent.c.device,
+                ),
+            ).join(
+                root,
+                sa.and_(
+                    inode.c.root_inode == root.c.inode, inode.c.device == root.c.device
+                ),
+            )
+        )
+        .where(inode.c.mode == None)
+        .distinct()
+        .alias()
+    )
 
-    q = sa.select([subq.c.uid, subq.c.gid, subq.c.root_gid, sa.func.dusql_path_func(subq.c.parent_inode, subq.c.device, subq.c.basename).label('path')]).alias()
-    q = sa.select(q.c).where(sa.not_(q.c.path.like('%/tmp/%')))
+    q = sa.select(
+        [
+            subq.c.uid,
+            subq.c.gid,
+            subq.c.root_gid,
+            sa.func.dusql_path_func(
+                subq.c.parent_inode, subq.c.device, subq.c.basename
+            ).label("path"),
+        ]
+    ).alias()
+    q = sa.select(q.c).where(sa.not_(q.c.path.like("%/tmp/%")))
 
     return q
+
 
 def unreadable_report(conn):
     # Count by user
@@ -93,29 +124,36 @@ def unreadable_report(conn):
 
     messages = []
 
-    for uid, group in df.groupby('uid'):
+    for uid, group in df.groupby("uid"):
 
         p = pwd.getpwuid(uid)
         username = p.pw_name
         fullname = p.pw_gecos
 
-        paths = group['path']
+        paths = group["path"]
 
-        messages.append({
-            'to': f'{fullname} <{username}@nci.org.au>',
-            'subject': f'CLEX storage for {username}',
-            'message': j_template.render(username = p.pw_name, fullname = p.pw_gecos, count = paths.size, paths = paths)
-            })
-        print(messages[-1]['message'])
+        messages.append(
+            {
+                "to": f"{fullname} <{username}@nci.org.au>",
+                "subject": f"CLEX storage for {username}",
+                "message": j_template.render(
+                    username=p.pw_name,
+                    fullname=p.pw_gecos,
+                    count=paths.size,
+                    paths=paths,
+                ),
+            }
+        )
+        print(messages[-1]["message"])
 
-        with open(f'/g/data/hh5/tmp/dusql/users/{username}.txt', 'w') as f:
+        with open(f"/g/data/hh5/tmp/dusql/users/{username}.txt", "w") as f:
             for path in paths:
-                f.write(path + '\n')
+                f.write(path + "\n")
 
     json.dump(messages, sys.stdout, indent=4)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from grafanadb import db
 
     with db.connect() as conn:

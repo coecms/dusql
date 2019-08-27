@@ -25,21 +25,42 @@ Base = declarative_base()
 
 # An inode on the file system
 class Inode(Base):
-    __tablename__ = 'dusql_inode'
+    __tablename__ = "dusql_inode"
 
-    basename = sa.Column('basename', sa.Text, primary_key=True)
-    inode = sa.Column('inode', sa.BigInteger)
-    device = sa.Column('device', sa.BigInteger, primary_key=True)
-    mode = sa.Column('mode', sa.Integer)
-    uid = sa.Column('uid', sa.Integer)
-    gid = sa.Column('gid', sa.Integer)
-    size = sa.Column('size', sa.BigInteger)
-    mtime = sa.Column('mtime', sa.Float)
-    scan_time = sa.Column('scan_time', sa.Float)
-    root_inode = sa.Column('root_inode', sa.BigInteger, sa.ForeignKey('dusql_inode.inode'))
-    parent_inode = sa.Column('parent_inode', sa.BigInteger, sa.ForeignKey('dusql_inode.inode'), primary_key=True)
+    basename = sa.Column("basename", sa.Text, primary_key=True)
+    inode = sa.Column("inode", sa.BigInteger)
+    device = sa.Column("device", sa.BigInteger, primary_key=True)
+    mode = sa.Column("mode", sa.Integer)
+    uid = sa.Column("uid", sa.Integer)
+    gid = sa.Column("gid", sa.Integer)
+    size = sa.Column("size", sa.BigInteger)
+    mtime = sa.Column("mtime", sa.Float)
+    scan_time = sa.Column("scan_time", sa.Float)
+    root_inode = sa.Column(
+        "root_inode", sa.BigInteger, sa.ForeignKey("dusql_inode.inode")
+    )
+    parent_inode = sa.Column(
+        "parent_inode",
+        sa.BigInteger,
+        sa.ForeignKey("dusql_inode.inode"),
+        primary_key=True,
+    )
 
-    root = orm.relationship('Inode', primaryjoin=sa.and_(orm.remote(inode)==orm.foreign(root_inode), orm.remote(device) == orm.foreign(device)))
-    parent = orm.relationship('Inode', primaryjoin=sa.and_(orm.remote(inode)==orm.foreign(parent_inode), orm.remote(device) == orm.foreign(device)))
+    root = orm.relationship(
+        "Inode",
+        primaryjoin=sa.and_(
+            orm.remote(inode) == orm.foreign(root_inode),
+            orm.remote(device) == orm.foreign(device),
+        ),
+    )
+    parent = orm.relationship(
+        "Inode",
+        primaryjoin=sa.and_(
+            orm.remote(inode) == orm.foreign(parent_inode),
+            orm.remote(device) == orm.foreign(device),
+        ),
+    )
 
-    path = orm.column_property(sa.func.dusql_path_func(parent_inode, device, basename), deferred=True)
+    path = orm.column_property(
+        sa.func.dusql_path_func(parent_inode, device, basename), deferred=True
+    )

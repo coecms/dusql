@@ -41,19 +41,18 @@ import sys
 
 messages = json.load(sys.stdin)
 
-server = SMTP('localhost')
+server = SMTP("localhost")
 
 for m in messages:
-    toaddr = m['to']
-    fromaddr = 'CLEX CMS <cws_help@nci.org.au>'
+    toaddr = m["to"]
+    fromaddr = "CLEX CMS <cws_help@nci.org.au>"
 
-    email = Message(m['message'])
-    email['Subject'] = m['subject']
-    email['From'] = fromaddr
-    email['Reply-To'] = fromaddr
-    email['To'] = toaddr
+    email = Message(m["message"])
+    email["Subject"] = m["subject"]
+    email["From"] = fromaddr
+    email["Reply-To"] = fromaddr
+    email["To"] = toaddr
 
     server.sendmail(fromaddr, [toaddr], email.as_string())
 
 server.quit()
-

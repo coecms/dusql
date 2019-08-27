@@ -22,31 +22,46 @@ import sqlalchemy as sa
 from collections.abc import Iterable
 import os
 
+
 def recursive_search(root_inodes, gid, not_gid, uid, not_uid, mtime, size):
     """
     Perform a recursive search of all files under `root_inodes` with the given constraints
     """
-    roots = sa.union_all(*[sa.select([sa.literal(r[0]).label('device'), sa.literal(r[1]).label('inode')]) for r in root_inodes]).alias('roots')
+    roots = sa.union_all(
+        *[
+            sa.select(
+                [sa.literal(r[0]).label("device"), sa.literal(r[1]).label("inode")]
+            )
+            for r in root_inodes
+        ]
+    ).alias("roots")
 
-    inode = m.Inode.__table__.alias('inode')
-    cte = (sa.select([*inode.c, sa.func.dusql_path_func(inode.c.parent_inode, inode.c.device, inode.c.basename).label('path')])
-            .select_from(
-                inode
-                .join(roots, sa.and_(inode.c.inode == roots.c.inode,
-                    inode.c.device == roots.c.device))
-                )
-            ).cte(recursive=True)
+    inode = m.Inode.__table__.alias("inode")
+    cte = (
+        sa.select(
+            [
+                *inode.c,
+                sa.func.dusql_path_func(
+                    inode.c.parent_inode, inode.c.device, inode.c.basename
+                ).label("path"),
+            ]
+        ).select_from(
+            inode.join(
+                roots,
+                sa.and_(
+                    inode.c.inode == roots.c.inode, inode.c.device == roots.c.device
+                ),
+            )
+        )
+    ).cte(recursive=True)
 
-    parent = cte.alias('parent')
-   
+    parent = cte.alias("parent")
+
     child_paths = cte.union_all(
-        sa.select([
-            *inode.c,
-            (parent.c.path + '/' + inode.c.basename).label('path')
-            ])
+        sa.select([*inode.c, (parent.c.path + "/" + inode.c.basename).label("path")])
         .where(inode.c.parent_inode == parent.c.inode)
         .where(inode.c.device == parent.c.device)
-        ).alias('find')
+    ).alias("find")
 
     q = sa.select(child_paths.c)
 
@@ -71,21 +86,26 @@ def recursive_search(root_inodes, gid, not_gid, uid, not_uid, mtime, size):
 
     return q
 
+
 def du_impl(*args, **kwargs):
     """
     Returns the total size in bytes and inodes of paths matching the find condition
     """
-    q = recursive_search(*args, **kwargs).alias('find')
-    q = sa.select([sa.func.sum(q.c.size).label('size'),sa.func.count().label('inodes')])
+    q = recursive_search(*args, **kwargs).alias("find")
+    q = sa.select(
+        [sa.func.sum(q.c.size).label("size"), sa.func.count().label("inodes")]
+    )
     return q
+
 
 def find_impl(*args, **kwargs):
     """
     Returns all paths matching the find conditions
     """
-    q = recursive_search(*args, **kwargs).alias('find')
+    q = recursive_search(*args, **kwargs).alias("find")
     q = sa.select([q.c.path])
     return q
+
 
 def time_delta_arg(arg):
     """
@@ -96,12 +116,14 @@ def time_delta_arg(arg):
     If a delta the timestamp returned is that delta before now
     """
     import pandas
+
     try:
         time = pandas.to_datetime(arg)
     except ValueError:
         delta = pandas.Timedelta(arg)
         time = pandas.Timestamp.utcnow() - delta
     return time.timestamp()
+
 
 def size_arg(arg):
     """
@@ -110,22 +132,22 @@ def size_arg(arg):
     arg = arg.lower()
 
     scale = 1
-    if arg.endswith('ib'):
+    if arg.endswith("ib"):
         arg = arg[:-2]
-    elif arg.endswith('b'):
+    elif arg.endswith("b"):
         arg = arg[:-1]
 
-    if arg.endswith('t'):
-        scale = 1024**4
+    if arg.endswith("t"):
+        scale = 1024 ** 4
         arg = arg[:-1]
-    elif arg.endswith('g'):
-        scale = 1024**3
+    elif arg.endswith("g"):
+        scale = 1024 ** 3
         arg = arg[:-1]
-    elif arg.endswith('m'):
-        scale = 1024**2
+    elif arg.endswith("m"):
+        scale = 1024 ** 2
         arg = arg[:-1]
-    elif arg.endswith('k'):
-        scale = 1024**1
+    elif arg.endswith("k"):
+        scale = 1024 ** 1
         arg = arg[:-1]
 
     value = float(arg)
@@ -146,29 +168,35 @@ def find_parse(root_paths, group=None, user=None, mtime=None, size=None):
 
     roots = [(s.st_dev, s.st_ino) for s in [os.stat(p) for p in root_paths]]
 
-    response = {'root_inodes': roots, 'gid': None, 'not_gid': None, 'uid': None,
-            'not_uid': None, 'mtime': None, 'size': None}
+    response = {
+        "root_inodes": roots,
+        "gid": None,
+        "not_gid": None,
+        "uid": None,
+        "not_uid": None,
+        "mtime": None,
+        "size": None,
+    }
 
     if group is not None:
-        if group.startswith('!') or group.startswith('-'):
-            response['not_gid'] = grp.getgrnam(group[1:]).gr_gid
+        if group.startswith("!") or group.startswith("-"):
+            response["not_gid"] = grp.getgrnam(group[1:]).gr_gid
         else:
-            response['gid'] = grp.getgrnam(group).gr_gid
+            response["gid"] = grp.getgrnam(group).gr_gid
     if user is not None:
-        if user.startswith('!') or user.startswith('-'):
-            response['not_uid'] = pwd.getpwnam(user[1:]).pw_uid
+        if user.startswith("!") or user.startswith("-"):
+            response["not_uid"] = pwd.getpwnam(user[1:]).pw_uid
         else:
-            response['uid'] = pwd.getpwnam(user).pw_uid
+            response["uid"] = pwd.getpwnam(user).pw_uid
     if mtime is not None:
-        if mtime.startswith('-'):
-            response['mtime'] = -time_delta_arg(mtime[1:])
+        if mtime.startswith("-"):
+            response["mtime"] = -time_delta_arg(mtime[1:])
         else:
-            response['mtime'] = time_delta_arg(mtime)
+            response["mtime"] = time_delta_arg(mtime)
     if size is not None:
-        response['size'] = size_arg(size)
+        response["size"] = size_arg(size)
 
-    with open('/g/data/hh5/tmp/dusql/client_key') as f:
-        response['api_key'] = f.read().strip()
+    with open("/g/data/hh5/tmp/dusql/client_key") as f:
+        response["api_key"] = f.read().strip()
 
     return response
-
