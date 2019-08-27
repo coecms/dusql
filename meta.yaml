@@ -8,6 +8,7 @@ source:
 build:
     script: "{{ PYTHON }} -m pip install . --no-deps"
     noarch: python
+    number: 3
 
 requirements:
     host:
