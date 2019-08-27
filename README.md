@@ -9,6 +9,14 @@ Commands
 
 Only files using CLEX storage on /short and /g/data are monitored
 
+Constraints may be:
+* `--size`: Files bigger than this value (use negative values for smaller than)
+* `--mtime`: Files created after this date (use negative values for before this
+  date). The date can be a year `2018`, date `20180623`, or a time delta
+  readable by Pandas `1y6m` in which case the delta is subtracted from today.
+* `--user`: Files owned by this user (use negative for not owned by this user)
+* `--group`: Files owned by this group (use negative for not owned by this group)
+
 `dusql du` can be used to list multiple directories, e.g. find where files smaller than 10 mb are:
 
 ```
