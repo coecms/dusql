@@ -1,6 +1,6 @@
 package:
     name: dusqlpg
-    version: 0
+    version: {{ GIT_DESCRIBE_TAG }}
 
 source:
     path: .
@@ -8,7 +8,7 @@ source:
 build:
     script: "{{ PYTHON }} -m pip install . --no-deps"
     noarch: python
-    number: 3
+    number: {{ GIT_DESCRIBE_NUMBER }}
 
 requirements:
     host:
