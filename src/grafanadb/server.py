@@ -22,7 +22,7 @@ from grafanadb.find import find_impl, du_impl
 from grafanadb.db import connect
 
 app = Flask(__name__)
-app.config['DATABASE'] = 'postgresql://localhost:5432/grafana'
+app.config['DATABASE'] = 'postgresql://@/grafana'
 
 find_schema = {
         'type': 'object',
@@ -48,15 +48,12 @@ find_schema = {
 
 @app.route('/find')
 def find():
-    try:
-        json = request.get_json()
-        validate(json, schema=find_schema)
+    json = request.get_json()
+    validate(json, schema=find_schema)
 
-        q = find_impl(**json)
-        with connect(url=app.config['DATABASE']) as conn:
-            return jsonify([row.path for row in conn.execute(q)])
-    except:
-        abort(400)
+    q = find_impl(**json)
+    with connect(url=app.config['DATABASE']) as conn:
+        return jsonify([row.path for row in conn.execute(q)])
 
 @app.route('/du')
 def du():
