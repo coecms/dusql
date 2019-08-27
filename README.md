@@ -4,8 +4,8 @@ Postgres-based disk usage analyser
 Commands
 --------
 
-`dusql find <PATH>`: Lists files matching some constraints
-`dusql du <PATH>`: Show total size and number of files matching some constraints
+* `dusql find <PATH>`: Lists files matching some constraints
+* `dusql du <PATH>`: Show total size and number of files matching some constraints
 
 Only files using CLEX storage on /short and /g/data are monitored
 
@@ -33,6 +33,8 @@ Structure
 Server `grafanadb.server:app` on CMS Jenkins server:
 * Runs flask webapp that talks to the database
 * Configured using Accessdev puppet infrastructure
+
+The server is installed in a conda environment in Scott's home directory on the Jenkins server, update with `conda update -c coecms dusqlpg`
 
 Client program `dusql` on raijin/vdi:
 * Talks to the webapp to get information from the database
