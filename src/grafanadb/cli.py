@@ -116,6 +116,8 @@ class Find():
         f_args = find_parse(args.roots, args.group, args.user, args.mtime, args.size)
 
         r = requests.get('https://accessdev-test.nci.org.au/dusql/find', json=f_args)
+        r.raise_for_status()
+
         for row in r.json():
             print(row)
 
