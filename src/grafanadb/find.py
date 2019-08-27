@@ -167,5 +167,8 @@ def find_parse(root_paths, group=None, user=None, mtime=None, size=None):
     if size is not None:
         response['size'] = size_arg(size)
 
+    with open('/g/data/hh5/tmp/dusql/client_key') as f:
+        response['api_key'] = f.read().strip()
+
     return response
 

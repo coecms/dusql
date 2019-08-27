@@ -22,18 +22,21 @@ from fixtures import *
 
 def test_find_single(conn):
     args = find_parse('/short/w35/saw562/scratch')
+    args.pop('api_key')
     q = find_impl(**args)
     r = conn.execute(q)
     assert isinstance(r.fetchone().path, str)
 
 def test_find_list(conn):
     args = find_parse(['/short/w35/saw562/scratch', '/short/w35/saw562/tmp'])
+    args.pop('api_key')
     q = find_impl(**args)
     r = conn.execute(q)
     assert isinstance(r.fetchone().path, str)
 
 def test_du(conn):
     args = find_parse(['/short/w35/saw562/scratch', '/short/w35/saw562/tmp'])
+    args.pop('api_key')
     q = du_impl(**args)
     r = conn.execute(q).fetchone()
     assert r.inodes > 0

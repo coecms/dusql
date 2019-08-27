@@ -20,9 +20,11 @@ from flask import Flask, request, jsonify, abort
 from jsonschema import validate
 from grafanadb.find import find_impl, du_impl
 from grafanadb.db import connect
+import os
 
 app = Flask(__name__)
 app.config['DATABASE'] = 'postgresql://@/grafana'
+app.config['API_KEY'] = os.environ.get('API_KEY')
 
 find_schema = {
         'type': 'object',
@@ -49,7 +51,15 @@ find_schema = {
 @app.route('/find')
 def find():
     json = request.get_json()
-    validate(json, schema=find_schema)
+
+    print(app.config['API_KEY'])
+    if json is None or json.pop('api_key', None) != app.config['API_KEY']:
+        abort(401)
+
+    try:
+        validate(json, schema=find_schema)
+    except:
+        abort(400)
 
     q = find_impl(**json)
     with connect(url=app.config['DATABASE']) as conn:
@@ -58,7 +68,15 @@ def find():
 @app.route('/du')
 def du():
     json = request.get_json()
-    validate(json, schema=find_schema)
+
+
+    if json is None or json.pop('api_key', None) != app.config['API_KEY']:
+        abort(401)
+
+    try:
+        validate(json, schema=find_schema)
+    except:
+        abort(400)
 
     q = du_impl(**json)
     with connect(url=app.config['DATABASE']) as conn:
