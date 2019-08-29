@@ -22,8 +22,8 @@ import curses
 import os
 import requests
 
-sort_size = lambda x: x[1]
-sort_inode = lambda x: x[2]
+sort_size = lambda x: (x[1] if x[1] is not None else float('inf'))
+sort_inode = lambda x: (x[2] if x[2] is not None else float('inf'))
 
 
 class State:
@@ -57,6 +57,7 @@ class State:
         Change the current directory to `path` (relative to the current path)
         """
         self.path = os.path.normpath(os.path.join(self.path, path))
+        rows, cols = self.window.getmaxyx()
 
         # Reset the pad
         self.pad.clear()
@@ -70,11 +71,14 @@ class State:
                 self.find_args["root_inodes"] = [
                     (entry.stat().st_dev, entry.stat().st_ino)
                 ]
-                r = requests.get(
-                    "https://accessdev-test.nci.org.au/dusql/du", json=self.find_args
-                )
-                r.raise_for_status()
-                r = r.json()
+                try:
+                    r = requests.get(
+                        "https://accessdev-test.nci.org.au/dusql/du", json=self.find_args, timeout=2
+                    )
+                    r.raise_for_status()
+                    r = r.json()
+                except:
+                    r = {'size': None, 'inodes': None}
                 self.children.append(
                     [
                         entry.name,
@@ -84,9 +88,12 @@ class State:
                     ]
                 )
                 # Update the screen so it's not too boring
+                if len(self.children) > rows:
+                    self.pad_offset = len(self.children) - rows
                 self.redraw()
 
         # Sort the retrieved files
+        self.pad_offset = 0
         self.resort()
 
     def scroll(self, n):
@@ -128,9 +135,15 @@ class State:
                 attrs = curses.A_BOLD
                 name += "/"
             self.pad.addnstr(1 + i, 4, name, cols - 4, attrs)
-            self.pad.addstr(
-                1 + i, cols - 1 - 20, f"{pretty_size(size):>9s}   {inodes:8d}"
-            )
+            if inodes is None:
+                self.pad.addstr(
+                    1 + i, cols - 1 - 20, f"{'?':>9s}   {'?':>8s}"
+                )
+            else:
+                self.pad.addstr(
+                    1 + i, cols - 1 - 20, f"{pretty_size(size):>9s}   {inodes:8d}"
+                )
+
 
         # Mark the currently selected line
         self.pad.addstr(self.row, 2, ">", curses.A_STANDOUT)
@@ -167,7 +180,7 @@ class State:
         elif command in (curses.KEY_ENTER, curses.KEY_RIGHT, 10, 13):
             if self.row == 0:
                 self.chdir("..")
-            if self.children[self.row - 1][2] > 0 and self.children[self.row - 1][3]:
+            if self.children[self.row - 1][3]:
                 self.chdir(self.children[self.row - 1][0])
         elif command == curses.KEY_LEFT:
             self.chdir("..")
