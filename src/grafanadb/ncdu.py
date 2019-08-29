@@ -22,8 +22,8 @@ import curses
 import os
 import requests
 
-sort_size = lambda x: (x[1] if x[1] is not None else float('inf'))
-sort_inode = lambda x: (x[2] if x[2] is not None else float('inf'))
+sort_size = lambda x: (x[1] if x[1] is not None else float("inf"))
+sort_inode = lambda x: (x[2] if x[2] is not None else float("inf"))
 
 
 class State:
@@ -69,16 +69,21 @@ class State:
         with os.scandir(self.path) as it:
             for entry in it:
                 self.find_args["root_inodes"] = [
-                    (entry.stat(follow_symlinks=False).st_dev, entry.stat(follow_symlinks=False).st_ino)
+                    (
+                        entry.stat(follow_symlinks=False).st_dev,
+                        entry.stat(follow_symlinks=False).st_ino,
+                    )
                 ]
                 try:
                     r = requests.get(
-                        "https://accessdev-test.nci.org.au/dusql/du", json=self.find_args, timeout=2
+                        "https://accessdev-test.nci.org.au/dusql/du",
+                        json=self.find_args,
+                        timeout=2,
                     )
                     r.raise_for_status()
                     r = r.json()
                 except:
-                    r = {'size': None, 'inodes': None}
+                    r = {"size": None, "inodes": None}
                 self.children.append(
                     [
                         entry.name,
@@ -136,14 +141,11 @@ class State:
                 name += "/"
             self.pad.addnstr(1 + i, 4, name, cols - 4, attrs)
             if inodes is None:
-                self.pad.addstr(
-                    1 + i, cols - 1 - 20, f"{'?':>9s}   {'?':>8s}"
-                )
+                self.pad.addstr(1 + i, cols - 1 - 20, f"{'?':>9s}   {'?':>8s}")
             else:
                 self.pad.addstr(
                     1 + i, cols - 1 - 20, f"{pretty_size(size):>9s}   {inodes:8d}"
                 )
-
 
         # Mark the currently selected line
         self.pad.addstr(self.row, 2, ">", curses.A_STANDOUT)

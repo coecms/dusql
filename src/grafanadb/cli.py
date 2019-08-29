@@ -38,7 +38,7 @@ def main():
     Ncdu.init_parser(subparser)
 
     args = parser.parse_args()
-    if 'run' in args:
+    if "run" in args:
         args.run(args)
     else:
         parser.print_usage()
