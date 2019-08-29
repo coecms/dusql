@@ -31,30 +31,40 @@ class State:
         self.window = window
 
         self.path = root_path
-        self.row = 0
 
+        # The children of the current path
         self.children = []
 
+        # Filter arguments to be sent to the web service
+        self.find_args = find_args
+
+        # The pad holds the list of files, it allows for more lines than the screen can hold
+        self.pad = curses.newpad(1, 1)
+        self.pad_offset = 0
+
+        # Sorting information for the file list
         self.sorter = sort_size
         self.reverse = True
 
-        self.find_args = find_args
-
-        self.pad = curses.newpad(1, 1)
-        self.pad.scrollok(True)
-        self.pad_offset = 0
+        # The currently selected row
+        self.row = 0
 
         # Initialise the directory list
         self.chdir(".")
 
     def chdir(self, path):
+        """
+        Change the current directory to `path` (relative to the current path)
+        """
         self.path = os.path.normpath(os.path.join(self.path, path))
+
+        # Reset the pad
         self.pad.clear()
         self.row = 0
         self.pad_offset = 0
 
+        # Build up the new list of children by doing a 'dusql du' on each of its immediate children
         self.children = []
-
         with os.scandir(self.path) as it:
             for entry in it:
                 self.find_args["root_inodes"] = [
@@ -73,14 +83,21 @@ class State:
                         entry.is_dir(follow_symlinks=False),
                     ]
                 )
+                # Update the screen so it's not too boring
                 self.redraw()
 
+        # Sort the retrieved files
         self.resort()
 
     def scroll(self, n):
+        """
+        Scroll the currently selected line down by `n` (negative to go up)
+        """
+        # Update the current row
         newrow = self.row + n
         self.row = min(len(self.children), max(0, newrow))
 
+        # Handle scrolling the pad
         rows, cols = self.window.getmaxyx()
         rows = rows - 2  # Remove top and bottom header
 
@@ -90,15 +107,20 @@ class State:
             self.pad_offset = self.row - (rows - 2)
 
     def redraw(self):
+        """
+        Redraw the whole screen
+        """
         self.window.erase()
         self.pad.erase()
 
         rows, cols = self.window.getmaxyx()
         self.pad.resize(1 + len(self.children), cols)
 
+        # First line is a header
         self.window.addnstr(0, 0, self.path, cols)
         self.window.addstr(0, cols - 1 - 20, f'{"Size":>9s}   {"Inodes":>8s}')
 
+        # Then the pad holds the list of files and their properties
         self.pad.addstr(0, 4, "..")
         for i, (name, size, inodes, isdir) in enumerate(self.children):
             attrs = curses.A_NORMAL
@@ -110,8 +132,10 @@ class State:
                 1 + i, cols - 1 - 20, f"{pretty_size(size):>9s}   {inodes:8d}"
             )
 
+        # Mark the currently selected line
         self.pad.addstr(self.row, 2, ">", curses.A_STANDOUT)
 
+        # Last line is a footer with some basic help
         self.window.addnstr(
             rows - 1,
             0,
@@ -120,15 +144,22 @@ class State:
             curses.A_STANDOUT,
         )
 
+        # Update everything
         self.window.noutrefresh()
         self.pad.noutrefresh(self.pad_offset, 0, 1, 0, rows - 2, cols)
         curses.doupdate()
 
     def resort(self):
+        """
+        Resort the list of children according to the current sorter
+        """
         self.pad.clear()
         self.children = sorted(self.children, key=self.sorter, reverse=self.reverse)
 
     def update(self, command):
+        """
+        Handle key events
+        """
         if command == curses.KEY_UP:
             self.scroll(-1)
         elif command == curses.KEY_DOWN:
