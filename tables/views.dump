@@ -1,0 +1,268 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 9.6.10
+-- Dumped by pg_dump version 11.4
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: ProjectUsage_; Type: VIEW; Schema: public; Owner: aph502
+--
+
+CREATE VIEW public."ProjectUsage_" AS
+ SELECT "Projects".project,
+    "Systems".system,
+    "SystemQueues".queue,
+    "ProjectUsage".date,
+    "ProjectUsage".usage_cpu,
+    "ProjectUsage".usage_wall,
+    "ProjectUsage".usage_su
+   FROM (((public."ProjectUsage"
+     JOIN public."Projects" ON (("Projects".id = "ProjectUsage".project_id)))
+     JOIN public."SystemQueues" ON (("SystemQueues".id = "ProjectUsage".systemqueue_id)))
+     JOIN public."Systems" ON (("Systems".id = "SystemQueues".system_id)))
+  WHERE (NOT ("ProjectUsage".usage_cpu = (0)::double precision));
+
+
+ALTER TABLE public."ProjectUsage_" OWNER TO aph502;
+
+--
+-- Name: StorageGrants_; Type: VIEW; Schema: public; Owner: aph502
+--
+
+CREATE VIEW public."StorageGrants_" AS
+ SELECT "StorageGrants".id,
+    "Projects".project,
+    "Systems".system,
+    "StoragePoints".storagepoint,
+    "Schemes".scheme,
+    "Quarters".year,
+    "Quarters".quarter,
+    "StorageGrants".date,
+    "StorageGrants".capacity,
+    "StorageGrants".inodes
+   FROM (((((public."StorageGrants"
+     JOIN public."Projects" ON (("Projects".id = "StorageGrants".project_id)))
+     JOIN public."Systems" ON (("Systems".id = "StorageGrants".system_id)))
+     JOIN public."Schemes" ON (("Schemes".id = "StorageGrants".scheme_id)))
+     JOIN public."Quarters" ON (("Quarters".id = "StorageGrants".quarter_id)))
+     JOIN public."StoragePoints" ON (("StoragePoints".id = "StorageGrants".storagepoint_id)));
+
+
+ALTER TABLE public."StorageGrants_" OWNER TO aph502;
+
+--
+-- Name: StorageGrantsUnique_; Type: VIEW; Schema: public; Owner: aph502
+--
+
+CREATE VIEW public."StorageGrantsUnique_" AS
+ SELECT g.project,
+    g.system,
+    g.storagepoint,
+    g.scheme,
+    g.year,
+    g.quarter,
+    g.date,
+    g.capacity,
+    g.inodes
+   FROM (( SELECT max("StorageGrants_".id) AS id,
+            "StorageGrants_".project,
+            "StorageGrants_".system,
+            "StorageGrants_".storagepoint,
+            "StorageGrants_".scheme,
+            "StorageGrants_".quarter,
+            max("StorageGrants_".date) AS maxdate
+           FROM public."StorageGrants_"
+          GROUP BY "StorageGrants_".project, "StorageGrants_".system, "StorageGrants_".storagepoint, "StorageGrants_".scheme, "StorageGrants_".quarter) x
+     JOIN public."StorageGrants_" g ON ((g.id = x.id)));
+
+
+ALTER TABLE public."StorageGrantsUnique_" OWNER TO aph502;
+
+--
+-- Name: SystemQueues_; Type: VIEW; Schema: public; Owner: aph502
+--
+
+CREATE VIEW public."SystemQueues_" AS
+ SELECT "Systems".system,
+    "SystemQueues".queue,
+    "SystemQueues".chargeweight
+   FROM (public."SystemQueues"
+     JOIN public."Systems" ON (("Systems".id = "SystemQueues".system_id)));
+
+
+ALTER TABLE public."SystemQueues_" OWNER TO aph502;
+
+--
+-- Name: UserStorage_; Type: VIEW; Schema: public; Owner: aph502
+--
+
+CREATE VIEW public."UserStorage_" AS
+ SELECT "Projects".project,
+    "Users"."user",
+    "Users".fullname,
+    "StoragePoints".storagepoint,
+    "UserStorage".folder,
+    "UserStorage".scandate,
+    "UserStorage".inodes,
+    "UserStorage".size
+   FROM (((public."UserStorage"
+     JOIN public."Projects" ON (("Projects".id = "UserStorage".project_id)))
+     JOIN public."Users" ON (("Users".id = "UserStorage".user_id)))
+     JOIN public."StoragePoints" ON (("StoragePoints".id = "UserStorage".storagepoint_id)));
+
+
+ALTER TABLE public."UserStorage_" OWNER TO aph502;
+
+--
+-- Name: TotalUserStorage_; Type: VIEW; Schema: public; Owner: aph502
+--
+
+CREATE VIEW public."TotalUserStorage_" AS
+ SELECT "UserStorage_".project,
+    "UserStorage_"."user",
+    "UserStorage_".fullname,
+    "UserStorage_".storagepoint,
+    "UserStorage_".scandate,
+    sum("UserStorage_".inodes) AS inodes,
+    sum("UserStorage_".size) AS size
+   FROM public."UserStorage_"
+  GROUP BY "UserStorage_".project, "UserStorage_"."user", "UserStorage_".fullname, "UserStorage_".storagepoint, "UserStorage_".scandate;
+
+
+ALTER TABLE public."TotalUserStorage_" OWNER TO aph502;
+
+--
+-- Name: UsageGrants_; Type: VIEW; Schema: public; Owner: aph502
+--
+
+CREATE VIEW public."UsageGrants_" AS
+ SELECT "UsageGrants".id,
+    "Projects".project,
+    "Systems".system,
+    "Schemes".scheme,
+    "Quarters".year,
+    "Quarters".quarter,
+    "UsageGrants".date,
+    "UsageGrants".allocation
+   FROM ((((public."UsageGrants"
+     JOIN public."Projects" ON (("Projects".id = "UsageGrants".project_id)))
+     JOIN public."Systems" ON (("Systems".id = "UsageGrants".system_id)))
+     JOIN public."Schemes" ON (("Schemes".id = "UsageGrants".scheme_id)))
+     JOIN public."Quarters" ON (("Quarters".id = "UsageGrants".quarter_id)));
+
+
+ALTER TABLE public."UsageGrants_" OWNER TO aph502;
+
+--
+-- Name: UsageGrantsUnique_; Type: VIEW; Schema: public; Owner: aph502
+--
+
+CREATE VIEW public."UsageGrantsUnique_" AS
+ SELECT g.project,
+    g.system,
+    g.scheme,
+    g.year,
+    g.quarter,
+    g.date,
+    g.allocation
+   FROM (( SELECT max("UsageGrants_".id) AS id,
+            "UsageGrants_".project,
+            "UsageGrants_".system,
+            "UsageGrants_".scheme,
+            "UsageGrants_".quarter,
+            max("UsageGrants_".date) AS maxdate
+           FROM public."UsageGrants_"
+          GROUP BY "UsageGrants_".project, "UsageGrants_".system, "UsageGrants_".scheme, "UsageGrants_".quarter) x
+     JOIN public."UsageGrants_" g ON ((g.id = x.id)));
+
+
+ALTER TABLE public."UsageGrantsUnique_" OWNER TO aph502;
+
+--
+-- Name: UserUsage_; Type: VIEW; Schema: public; Owner: aph502
+--
+
+CREATE VIEW public."UserUsage_" AS
+ SELECT "Projects".project,
+    "Users"."user",
+    "Users".fullname,
+    "UserUsage".date,
+    "UserUsage".usage_cpu,
+    "UserUsage".usage_wall,
+    "UserUsage".usage_su,
+    "UserUsage".efficiency
+   FROM ((public."UserUsage"
+     JOIN public."Projects" ON (("Projects".id = "UserUsage".project_id)))
+     JOIN public."Users" ON (("Users".id = "UserUsage".user_id)));
+
+
+ALTER TABLE public."UserUsage_" OWNER TO aph502;
+
+--
+-- Name: TABLE "ProjectUsage_"; Type: ACL; Schema: public; Owner: aph502
+--
+
+GRANT ALL ON TABLE public."ProjectUsage_" TO grafana_admin;
+GRANT SELECT ON TABLE public."ProjectUsage_" TO grafana_ro;
+
+
+--
+-- Name: TABLE "SystemQueues_"; Type: ACL; Schema: public; Owner: aph502
+--
+
+GRANT ALL ON TABLE public."SystemQueues_" TO grafana_admin;
+
+
+--
+-- Name: TABLE "UserStorage_"; Type: ACL; Schema: public; Owner: aph502
+--
+
+GRANT ALL ON TABLE public."UserStorage_" TO grafana_admin;
+
+
+--
+-- Name: TABLE "TotalUserStorage_"; Type: ACL; Schema: public; Owner: aph502
+--
+
+GRANT ALL ON TABLE public."TotalUserStorage_" TO grafana_admin;
+
+
+--
+-- Name: TABLE "UsageGrants_"; Type: ACL; Schema: public; Owner: aph502
+--
+
+GRANT ALL ON TABLE public."UsageGrants_" TO grafana_admin;
+
+
+--
+-- Name: TABLE "UsageGrantsUnique_"; Type: ACL; Schema: public; Owner: aph502
+--
+
+GRANT ALL ON TABLE public."UsageGrantsUnique_" TO grafana_admin;
+GRANT SELECT ON TABLE public."UsageGrantsUnique_" TO grafana_ro;
+
+
+--
+-- Name: TABLE "UserUsage_"; Type: ACL; Schema: public; Owner: aph502
+--
+
+GRANT ALL ON TABLE public."UserUsage_" TO grafana_admin;
+GRANT SELECT ON TABLE public."UserUsage_" TO grafana_ro;
+
+
+--
+-- PostgreSQL database dump complete
+--
+

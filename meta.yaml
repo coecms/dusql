@@ -1,53 +1,33 @@
-{% set data = load_setup_py_data() %}
-
 package:
-    name: dusql
-    version: {{ data['version'] }}
+    name: dusqlpg
+    version: {{ GIT_DESCRIBE_TAG }}
 
 source:
-    path: ./
-
-requirements:
-    build:
-        - {{ compiler('c') }}
-        - sqlite
-    host:
-        - python >3.5
-        - pip
-    run:
-        - python
-        - sqlalchemy
-        - pandas
-        - tqdm
-        - ncdu
-        - alembic
-        - pyyaml
-        - jsonschema
+    path: .
 
 build:
+    script: "{{ PYTHON }} -m pip install . --no-deps"
     noarch: python
-    script: 
-        - "${CC} ${CFLAGS} -fPIC -shared src/dusql/closure.c -o src/dusql/closure.so"
-        - "{{ PYTHON }} -m pip install . -vv"
+    number: {{ GIT_DESCRIBE_NUMBER }}
+
+requirements:
+    host:
+        - python
+        - pip
+    run:
+        - python >=3.6
+        - sqlalchemy
+        - psycopg2
+        - flask
+        - requests
+        - jsonschema
 
 test:
-    files:
-        - test/**/*.py
-        - src/**/*.py
-        - setup.cfg
     requires:
         - pytest
-        - pytest-cov
+    files:
+        - tests
     commands:
-        - py.test --cov dusql
-        - coverage combine .coverage
-        - coverage xml -o {{ environ.get('PWD','') }}/coverage.xml
-        - dusql --help
-
-about:
-    home: {{ data['url'] }}
-    summary: {{ data['description'] }}
-    license: APACHE
-    license_file: LICENSE
-
-
+        - py.test
+    imports:
+        - grafanadb

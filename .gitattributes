@@ -1,1 +1,1 @@
-src/dusql/_version.py export-subst
+src/grafanadb/_version.py export-subst
