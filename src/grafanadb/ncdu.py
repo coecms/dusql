@@ -78,7 +78,7 @@ class State:
                     r = requests.get(
                         "https://accessdev-test.nci.org.au/dusql/du",
                         json=self.find_args,
-                        timeout=2,
+                        timeout=8,
                     )
                     r.raise_for_status()
                     r = r.json()
