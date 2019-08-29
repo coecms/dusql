@@ -69,7 +69,7 @@ class State:
         with os.scandir(self.path) as it:
             for entry in it:
                 self.find_args["root_inodes"] = [
-                    (entry.stat().st_dev, entry.stat().st_ino)
+                    (entry.stat(follow_symlinks=False).st_dev, entry.stat(follow_symlinks=False).st_ino)
                 ]
                 try:
                     r = requests.get(
