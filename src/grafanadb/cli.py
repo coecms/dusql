@@ -86,6 +86,7 @@ class Du:
 
             print(f'{pretty_size(r["size"])}, {r["inodes"]:8d} files, {root}')
 
+
 class Ncdu:
     """
     Interactively view the disk usage of matching files 
@@ -98,6 +99,7 @@ class Ncdu:
     'N' arguments can start with '+' to find files greater/newer than N or '-'
     to find files less/older than N
     """
+
     @classmethod
     def init_parser(cls, subparser):
         parser = subparser.add_parser(
