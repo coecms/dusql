@@ -35,6 +35,7 @@ def main():
     subparser = parser.add_subparsers(help="Sub-commands")
     Find.init_parser(subparser)
     Du.init_parser(subparser)
+    Ncdu.init_parser(subparser)
 
     args = parser.parse_args()
     if args.run is not None:
@@ -62,7 +63,7 @@ class Du:
             description=textwrap.dedent(cls.__doc__),
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
-        parser.add_argument("roots", nargs="+", help="Root search paths")
+        parser.add_argument("path", nargs="+", help="Root search paths")
         parser.add_argument("--group", metavar="NAME", help="File belongs to group")
         parser.add_argument("--user", metavar="NAME", help="File belongs to user")
         parser.add_argument(
@@ -76,7 +77,7 @@ class Du:
 
     @classmethod
     def run(cls, args):
-        for root in args.roots:
+        for root in args.path:
             f_args = find_parse(root, args.group, args.user, args.mtime, args.size)
 
             r = requests.get("https://accessdev-test.nci.org.au/dusql/du", json=f_args)
@@ -84,6 +85,46 @@ class Du:
             r = r.json()
 
             print(f'{pretty_size(r["size"])}, {r["inodes"]:8d} files, {root}')
+
+class Ncdu:
+    """
+    Interactively view the disk usage of matching files 
+
+    Note that only CLEX project storage is available for search
+
+    'NAME' arguments can start with either '!' or '-' to find files that don't
+    have that name
+
+    'N' arguments can start with '+' to find files greater/newer than N or '-'
+    to find files less/older than N
+    """
+    @classmethod
+    def init_parser(cls, subparser):
+        parser = subparser.add_parser(
+            "ncdu",
+            help="Interactive usage viewer",
+            description=textwrap.dedent(cls.__doc__),
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+        )
+        parser.add_argument("path", nargs=1, help="Root search path")
+        parser.add_argument("--group", metavar="NAME", help="File belongs to group")
+        parser.add_argument("--user", metavar="NAME", help="File belongs to user")
+        parser.add_argument(
+            "--mtime",
+            metavar="N",
+            help='File modification time (can be a year: "2018", date "20170602", or timedelta before today "1y6m")',
+        )
+        parser.add_argument("--size", metavar="N", help='File size ("16m", "1GB")')
+
+        parser.set_defaults(run=cls.run)
+
+    @classmethod
+    def run(cls, args):
+        import grafanadb.ncdu as ncdu
+        import curses
+
+        f_args = find_parse(args.path, args.group, args.user, args.mtime, args.size)
+        curses.wrapper(ncdu.main, args.path[0], f_args)
 
 
 def pretty_size(size):

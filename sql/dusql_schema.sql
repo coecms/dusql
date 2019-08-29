@@ -17,6 +17,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS dusql_inode (
 );
 CREATE INDEX IF NOT EXISTS dusql_inode_id ON dusql_inode(device, inode);
 CREATE INDEX IF NOT EXISTS dusql_inode_parent ON dusql_inode(device, parent_inode);
+GRANT SELECT ON dusql_inode TO dusql;
 
 /*
  * Stores a summary of historical filesystem state
@@ -30,6 +31,7 @@ CREATE TABLE IF NOT EXISTS dusql_history (
     size BIGINT,
     min_age INTERVAL,
     time TIMESTAMP WITH TIME ZONE);
+GRANT SELECT ON dusql_history TO grafana_ro;
 
 /*
  * Create a path given (parent_inode, device, basename) of an inode
