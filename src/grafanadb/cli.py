@@ -38,8 +38,10 @@ def main():
     Ncdu.init_parser(subparser)
 
     args = parser.parse_args()
-    if args.run is not None:
+    if 'run' in args:
         args.run(args)
+    else:
+        parser.print_usage()
 
 
 class Du:
