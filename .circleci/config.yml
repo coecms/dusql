@@ -3,7 +3,9 @@ jobs:
     build:
         docker:
             - image: continuumio/miniconda3
+            - image: circleci/postgres
         steps:
             - checkout
-            - run: conda install conda-build
+            - run: conda install conda-build conda-verify postgresql
+            - run: psql -d circle_test -f sql/dusql_schema.sql
             - run: conda build .
