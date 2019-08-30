@@ -37,7 +37,7 @@ Please review the paths listed below to ensure no data with access restrictions 
 
 If no such data exists, please fix your permissions as soon as possible by running:
 {% for path in paths %}
-    chmod -R g+rX {{path}}
+    chmod -R g+rX "{{path}}"
 {%- endfor -%}
 {%- else -%}
 Please review the paths listed in /g/data/hh5/tmp/dusql/users/{{username}}.txt to ensure no data with access restrictions is included in those paths. 
@@ -49,14 +49,15 @@ If no such data exists, please fix your permissions as soon as possible by runni
 
 If you have data you can not open to the whole group, please contact the CMS team (cws_help@nci.org.au) with the details of which paths need to keep access restrictions and why.
 
-You can check out our prototype monitoring dashboard at https://accessdev.nci.org.au/grafana/d/toeLAYDWz/user-report?orgId=1&var-userid={{username}} (log in with your NCI account)
-PLease let us know if you have any suggestions on what it would be useful to measure.
+You can check out our prototype monitoring dashboard at [1] (log in with your NCI account), and information on our 'dusql' tool for looking at storage use at [2]. Please let us know if you have any suggestions on what it would be useful to measure.  
 
-Tip: remember to check this wiki page [1] to find ways to create files with group permissions directly.
+Tip: remember to check this wiki page [3] to find ways to create files with group permissions directly.
 
 Sincerely, CLEX CMS
 
-[1] http://climate-cms.wikis.unsw.edu.au/Tips:_Custom_file_permissions_at_creation
+[1] https://accessdev.nci.org.au/grafana/d/toeLAYDWz/user-report?orgId=1&var-userid={{username}}
+[2] http://climate-cms.wikis.unsw.edu.au/Dusql
+[3] http://climate-cms.wikis.unsw.edu.au/Tips:_Custom_file_permissions_at_creation
 """
 
 
@@ -135,7 +136,7 @@ def unreadable_report(conn):
         messages.append(
             {
                 "to": f"{fullname} <{username}@nci.org.au>",
-                "subject": f"CLEX storage for {username}",
+                "subject": f"CLEX storage at NCI for {username}",
                 "message": j_template.render(
                     username=p.pw_name,
                     fullname=p.pw_gecos,
