@@ -21,9 +21,33 @@ from grafanadb.cli import pretty_size
 import curses
 import os
 import requests
+import functools
 
 sort_size = lambda x: (x[1] if x[1] is not None else float("inf"))
 sort_inode = lambda x: (x[2] if x[2] is not None else float("inf"))
+
+@functools.lru_cache(maxsize=1024)
+def cached_du(root, gid, not_gid, uid, not_uid, mtime, size, api_key):
+    try:
+        args = {'root_inodes': [root],
+            "gid": gid,
+            "not_gid": not_gid,
+            "uid": uid,
+            "not_uid": not_uid,
+            "mtime": mtime,
+            "size": size,
+            "api_key": api_key,
+            }
+        r = requests.get(
+            "https://accessdev-test.nci.org.au/dusql/du",
+            json=args,
+            timeout=8,
+        )
+        r.raise_for_status()
+        r = r.json()
+    except requests.exceptions.RequestException:
+        r = {"size": None, "inodes": None}
+    return r
 
 
 class State:
@@ -37,6 +61,7 @@ class State:
 
         # Filter arguments to be sent to the web service
         self.find_args = find_args
+        self.find_args.pop('root_inodes')
 
         # The pad holds the list of files, it allows for more lines than the screen can hold
         self.pad = curses.newpad(1, 1)
@@ -68,22 +93,11 @@ class State:
         self.children = []
         with os.scandir(self.path) as it:
             for entry in it:
-                self.find_args["root_inodes"] = [
-                    (
+                root = (
                         entry.stat(follow_symlinks=False).st_dev,
                         entry.stat(follow_symlinks=False).st_ino,
                     )
-                ]
-                try:
-                    r = requests.get(
-                        "https://accessdev-test.nci.org.au/dusql/du",
-                        json=self.find_args,
-                        timeout=8,
-                    )
-                    r.raise_for_status()
-                    r = r.json()
-                except:
-                    r = {"size": None, "inodes": None}
+                r = cached_du(root, **self.find_args)
                 self.children.append(
                     [
                         entry.name,

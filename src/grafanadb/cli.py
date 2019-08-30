@@ -130,6 +130,8 @@ class Ncdu:
         f_args = find_parse(args.path, args.group, args.user, args.mtime, args.size)
         curses.wrapper(ncdu.main, args.path[0], f_args)
 
+        print(ncdu.cached_du.cache_info())
+
 
 def pretty_size(size):
     from math import floor, log
