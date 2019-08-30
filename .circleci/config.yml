@@ -5,4 +5,5 @@ jobs:
             - image: continuumio/miniconda3
         steps:
             - checkout
+            - run: conda install conda-build
             - run: conda build .
