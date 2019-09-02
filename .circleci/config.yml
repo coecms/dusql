@@ -3,6 +3,8 @@ jobs:
     build:
         docker:
             - image: continuumio/miniconda3
+              environment:
+                  TEST_DB: postgresql://postgres@localhost/circle_test
             - image: circleci/postgres
         steps:
             - checkout

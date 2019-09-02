@@ -24,9 +24,11 @@ engine = None
 
 Session = sessionmaker()
 
+default_url="postgresql://localhost:9876/grafana"
+
 
 @contextmanager
-def connect(url="postgresql://localhost:9876/grafana"):
+def connect(url=default_url):
     """
     Get a connection to the database (context manager)::
 

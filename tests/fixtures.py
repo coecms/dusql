@@ -20,13 +20,14 @@ import grafanadb.db as db
 
 import pytest
 import logging
+import os
 
 
 @pytest.fixture(scope="session")
 def db_():
     logging.basicConfig()
     logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
-    with db.connect() as c:
+    with db.connect(url=os.environ.get('TEST_DB', db.default_url)) as c:
         yield c
 
 
