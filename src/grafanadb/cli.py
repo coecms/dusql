@@ -82,7 +82,7 @@ class Du:
         for root in args.path:
             f_args = find_parse(root, args.group, args.user, args.mtime, args.size)
 
-            r = requests.get("https://accessdev-test.nci.org.au/dusql/du", json=f_args)
+            r = requests.get("https://accessdev.nci.org.au/dusql/du", json=f_args)
             r.raise_for_status()
             r = r.json()
 
@@ -182,7 +182,7 @@ class Find:
     def run(cls, args):
         f_args = find_parse(args.roots, args.group, args.user, args.mtime, args.size)
 
-        r = requests.get("https://accessdev-test.nci.org.au/dusql/find", json=f_args)
+        r = requests.get("https://accessdev.nci.org.au/dusql/find", json=f_args)
         r.raise_for_status()
 
         for row in r.json():

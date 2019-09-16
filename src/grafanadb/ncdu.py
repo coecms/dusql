@@ -39,14 +39,14 @@ def cached_du(root, gid, not_gid, uid, not_uid, mtime, size, api_key):
             "api_key": api_key,
             }
         r = requests.get(
-            "https://accessdev-test.nci.org.au/dusql/du",
+            "https://accessdev.nci.org.au/dusql/du",
             json=args,
             timeout=8,
         )
         r.raise_for_status()
         r = r.json()
     except requests.exceptions.RequestException:
-        r = {"size": None, "inodes": None}
+        raise
     return r
 
 
@@ -97,7 +97,10 @@ class State:
                         entry.stat(follow_symlinks=False).st_dev,
                         entry.stat(follow_symlinks=False).st_ino,
                     )
-                r = cached_du(root, **self.find_args)
+                try:
+                    r = cached_du(root, **self.find_args)
+                except:
+                    r = {'size': None, 'inodes': None}
                 self.children.append(
                     [
                         entry.name,
