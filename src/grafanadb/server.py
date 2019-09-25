@@ -86,6 +86,6 @@ def du():
     except:
         abort(400)
 
-    json['root_inodes'] = set(json['root_inodes'])
+    json['root_inodes'] = tuple(tuple(x) for x in json['root_inodes'])
 
     return cached_du(**json)
