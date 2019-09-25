@@ -37,7 +37,7 @@ def connect(url=default_url):
     """
     global engine
     if engine is None:
-        engine = sa.create_engine(url)
+        engine = sa.create_engine(url, connect_args={'connect_timeout': 60})
         Session.configure(bind=engine)
 
     conn = engine.connect()

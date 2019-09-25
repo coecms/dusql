@@ -21,6 +21,7 @@ from jsonschema import validate
 from grafanadb.find import find_impl, du_impl
 from grafanadb.db import connect
 import os
+import functools
 
 app = Flask(__name__)
 app.config["DATABASE"] = "postgresql://@/grafana"
@@ -63,6 +64,15 @@ def find():
     with connect(url=app.config["DATABASE"]) as conn:
         return jsonify([row.path for row in conn.execute(q)])
 
+@functools.lru_cache(maxsize=8192)
+def cached_du(**json):
+    q = du_impl(**json)
+    with connect(url=app.config["DATABASE"]) as conn:
+        r = conn.execute(q).fetchone()
+        return {
+            "size": float(r.size) if r.size is not None else 0.0,
+            "inodes": r.inodes,
+        }
 
 @app.route("/du")
 def du():
@@ -76,10 +86,4 @@ def du():
     except:
         abort(400)
 
-    q = du_impl(**json)
-    with connect(url=app.config["DATABASE"]) as conn:
-        r = conn.execute(q).fetchone()
-        return {
-            "size": float(r.size) if r.size is not None else 0.0,
-            "inodes": r.inodes,
-        }
+    return cached_du(**json)
