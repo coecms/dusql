@@ -40,6 +40,7 @@ CREATE UNLOGGED TABLE dusql_inode (
         gid INTEGER,
         size BIGINT,
         mtime FLOAT,
+        atime FLOAT,
         scan_time FLOAT,
         root_inode BIGINT,
         parent_inode BIGINT
@@ -53,6 +54,7 @@ COPY dusql_inode(
     gid,
     size,
     mtime,
+    atime,
     scan_time,
     basename,
     root_inode,

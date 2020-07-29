@@ -34,6 +34,7 @@ def scan_entry(parent_device, parent_inode, scan_time, basename, stat, ipath):
         stat.st_gid,
         stat.st_size,
         stat.st_mtime,
+        stat.st_atime,
         scan_time,
         basename.decode("utf-8", "backslashreplace"),
         ipath[0],
@@ -49,6 +50,7 @@ unreadable_stat = types.SimpleNamespace(
     st_gid=None,
     st_size=None,
     st_mtime=None,
+    st_atime=None,
 )
 
 
