@@ -27,9 +27,8 @@ WITH
         SELECT p FROM (
             VALUES
             (INTERVAL 'P0D'),
-            (INTERVAL 'P10D'),
-            (INTERVAL 'P20D'),
-            (INTERVAL 'P30D'),
+            (INTERVAL 'P60D'),
+            (INTERVAL 'P90D'),
             (INTERVAL 'P3Y')
         ) AS v(p)
     ),
