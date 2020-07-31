@@ -13,17 +13,7 @@ set -euo pipefail
 
 module use /g/data/hh5/public/modules
 
-module load parallel
 module load conda
-
-#set -x
-
-PROJECTS="hh5/tmp v45 w35 w40 w42 w48 w97 ly62"
-#PROJECTS="w35"
-
-sed -e 's:\<\(\S\+\):/g/data/\1 /scratch/\1:g' -e 's:\s\+:\n:g' <<< $PROJECTS | parallel -v --jobs 4 python src/grafanadb/dusql_scan.py {} --output $TMPDIR/'dusql.{= $_=~ s:/:_:g =}.csv'
-
-cp $TMPDIR/dusql.*.csv /g/data/w35/saw562/dusql
 
 
 cat > $TMPDIR/dusql_update_head <<EOF
