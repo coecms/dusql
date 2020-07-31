@@ -34,6 +34,20 @@ CREATE TABLE IF NOT EXISTS dusql_history (
 GRANT SELECT ON dusql_history TO grafana_ro;
 
 /*
+ * Stores file expiry predictions
+ */
+CREATE TABLE IF NOT EXISTS dusql_access (
+    id SERIAL PRIMARY KEY,
+    root_inode BIGINT,
+    uid INTEGER,
+    gid INTEGER,
+    inodes INTEGER,
+    size BIGINT,
+    last_access INTERVAL,
+    time TIMESTAMP WITH TIME ZONE);
+GRANT SELECT ON dusql_access TO grafana_ro;
+
+/*
  * Create a path given (parent_inode, device, basename) of an inode
 */
 CREATE OR REPLACE FUNCTION dusql_path_func(search_parent_inode BIGINT, search_device BIGINT, search_basename TEXT) RETURNS TEXT AS $$
