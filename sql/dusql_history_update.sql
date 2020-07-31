@@ -29,7 +29,6 @@ WITH
             (INTERVAL 'P0D'),
             (INTERVAL 'P60D'),
             (INTERVAL 'P90D'),
-            (INTERVAL 'P3Y')
         ) AS v(p)
     ),
     y AS (
