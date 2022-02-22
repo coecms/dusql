@@ -58,12 +58,13 @@ cat > $TMPDIR/dusql_update_tail <<EOF
 COMMIT;
 EOF
 
-ssh -NL 9876:localhost:5432 jenkins &
+# Tunnel to the jenkins server
+ssh -W 10.0.3.190 -NL 9876:localhost:5432 accessdev.nci.org.au &
 tunnelid=$!
 
 trap "{ kill $tunnelid; }" EXIT
 
 sleep 2
 
-time psql -h localhost -p 9876  -d grafana -f <(cat $TMPDIR/dusql_update_head /g/data/w35/saw562/dusql/dusql.*.csv $TMPDIR/dusql_update_tail sql/dusql_schema.sql)
+time psql -h localhost -p 9876  -d grafana -f <(cat $TMPDIR/dusql_update_head $TMPDIR/dusql.*.csv $TMPDIR/dusql_update_tail sql/dusql_schema.sql)
 

@@ -1,6 +1,21 @@
 Postgres-based disk usage analyser
 ==================================
 
+Adds information about individual files to the Grafana database
+
+Runs on Jenkins using https://accessdev.nci.org.au/jenkins/job/CLEX%20Admin/job/dusql_scan/
+
+The Jenkins job submits 'run_scan.sh' to the queue, which scans the filesystem creating a csv file
+listing all the files under that project, then SSHs to the Grafana server and loads that csv into
+the database
+
+The 'run_update.sh' script will do just the database upload if you need to test that
+
+
+<!---
+
+NOTE: The following requires a web service, which is not currently active
+
 Commands
 --------
 
@@ -43,3 +58,5 @@ Authentication
 --------------
 
 The webapp uses a key that's only readable by CLEX groups on Raijin/VDI, so only group members can see the disk information
+
+--->
